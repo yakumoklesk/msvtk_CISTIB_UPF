@@ -32,28 +32,28 @@ include_directories(
   )
 
 set( SRCS_GUI_WX
-  GUI/wxMainFrameUI.cpp
+  GUI/wxMainFrameUI.cxx
   GUI/wxMainFrameUI.h
   #GUI/VolumeRenderingPanelUI.h
   #GUI/VolumeRenderingPanelUI.cpp
   #VolumeRenderingPanel.h
   #VolumeRenderingPanel.cpp
   GUI/wxVolumeRenderingPanelUI.h
-  GUI/wxVolumeRenderingPanelUI.cpp
+  GUI/wxVolumeRenderingPanelUI.cxx
   GUI/wxSliderDoubleUI.h
-  GUI/wxSliderDoubleUI.cpp
+  GUI/wxSliderDoubleUI.cxx
   GUI/wxMiscToolsPanelUI.h
-  GUI/wxMiscToolsPanelUI.cpp
+  GUI/wxMiscToolsPanelUI.cxx
   include/msvWxApp.h
-  src/msvWxApp.cpp
+  src/msvWxApp.cxx
   include/wxMainFrame.h
-  src/wxMainFrame.cpp
+  src/wxMainFrame.cxx
   include/wxVolumeRenderingPanel.h
-  src/wxVolumeRenderingPanel.cpp
+  src/wxVolumeRenderingPanel.cxx
   include/wxSliderDoubleWidget.h
-  src/wxSliderDoubleWidget.cpp
+  src/wxSliderDoubleWidget.cxx
   include/wxMiscToolsPanel.h
-  src/wxMiscToolsPanel.cpp
+  src/wxMiscToolsPanel.cxx
 )
 
 set( SRCS_GUI_QT
@@ -69,24 +69,24 @@ set( SRCS_VolumeRenderingTF
   ${SRCS_Common}
   #../src/wxVTKRenderWindowInteractor.cxx
   include/msvApp.h
-  src/msvApp.cpp
+  src/msvApp.cxx
   include/MainApp.h
-  src/MainApp.cpp
+  src/MainApp.cxx
   ${SRCS_GUI}
   include/msvVTKRTRenderWindowInteractor.h
-  src/msvVTKRTRenderWindowInteractor.cpp
+  src/msvVTKRTRenderWindowInteractor.cxx
   include/msvEntity.h
-  src/msvEntity.cpp
+  src/msvEntity.cxx
   include/msvEntityMgr.h
-  src/msvEntityMgr.cpp
+  src/msvEntityMgr.cxx
   include/msvObjectFactory.h
-  src/msvObjectFactory.cpp
+  src/msvObjectFactory.cxx
   include/vtkMultipleDataReader.h
-  src/vtkMultipleDataReader.cpp
+  src/vtkMultipleDataReader.cxx
   include/vtkMultipleStructuredPointsReader.h
-  src/vtkMultipleStructuredPointsReader.cpp
+  src/vtkMultipleStructuredPointsReader.cxx
   include/vtkTemporalDataSetTimeStepProvider.h
-  src/vtkTemporalDataSetTimeStepProvider.cpp
+  src/vtkTemporalDataSetTimeStepProvider.cxx
   #msvVolumeRenderFactory
   #msvGraphicsFactory
   )

@@ -20,11 +20,11 @@
 
 # TestMultipleStructuredPointsReader
 ADD_EXECUTABLE( TestMultipleStructuredPointsReader
-  ../tests/TestMultipleStructuredPointsReader.cpp
+  ../tests/TestMultipleStructuredPointsReader.cxx
   ../include/vtkMultipleDataReader.h
-  ../src/vtkMultipleDataReader.cpp
+  ../src/vtkMultipleDataReader.cxx
   ../include/vtkMultipleStructuredPointsReader.h
-  ../src/vtkMultipleStructuredPointsReader.cpp
+  ../src/vtkMultipleStructuredPointsReader.cxx
 )
 TARGET_LINK_LIBRARIES( TestMultipleStructuredPointsReader ${GTEST_BOTH_LIBRARIES} )
 
