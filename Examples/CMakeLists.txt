@@ -20,16 +20,10 @@
 
 project( Examples CXX )
 
-# Require CMake 2.6 or higher.
-cmake_minimum_required( VERSION 2.8.0 )
-
-include( CMake/Common.cmake )
-
 
 # Set some variables to substitute in config file
 set( Examples_VERSION_MAJOR 1 )
 set( Examples_VERSION_MINOR 0 )
-
 
 # Set the possible GUI API
 set( Examples_GUI_API WXWIDGETS CACHE STRING "Set the desired GUI API to be used for examples" )
@@ -83,7 +77,7 @@ set( USE_WXVTK_CONFIG 0 )
 configure_file(
   "${PROJECT_SOURCE_DIR}/config/BuildConfig.h.in"
   "${PROJECT_BINARY_DIR}/BuildConfig.h"
-  )
+)
 
 # Add the directory where the output configuration file is
 include_directories( "${PROJECT_BINARY_DIR}" )
@@ -113,6 +107,14 @@ set( SRCS_Common
   ${PROJECT_BINARY_DIR}/BuildConfig.h
 )
 
-#add_subdirectory( First )
-#add_subdirectory( FrustumClippingWidget )
+# If the parent has configure libary or executable dir, inherit
+if( PARENT_PROJECT_LIBRARY_DIR )
+  set( LIBRARY_OUTPUT_PATH ${PARENT_PROJECT_LIBRARY_DIR} )
+endif()
+if( PARENT_PROJECT_EXECUTABLE_DIR )
+  set( EXECUTABLE_OUTPUT_PATH ${PARENT_PROJECT_EXECUTABLE_DIR} )
+endif()
+
+set( Examples_BINARY_DIR "bin" )
+
 add_subdirectory( VolumeRenderingTF )

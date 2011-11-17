@@ -209,13 +209,13 @@ string MainApp::GetResouceFolderPath()
 {
 #if defined( BUILD_LOCATION )
   #if( BUILD_LOCATION == BUILD_FROM_WORK )
-    string resFolder = "F:/dev/prj/UsingVTK/Examples/VolumeRenderingTF/res/";
+    string resFolder = "F:/dev/prj/UsingVTK/res/";
   #elif( BUILD_LOCATION == BUILD_FROM_HOME )
-    string resFolder = "C:/dev/prj/job/UsingVTK/Examples/VolumeRenderingTF/res/";
+    string resFolder = "C:/dev/prj/job/UsingVTK/res/";
   #endif
 #else
-    string resFolder = "H:/dev/prj/UsingVTK/Examples/VolumeRenderingTF/res/";
-#endif	// #ifdef( BUILD_LOCATION )
+    string resFolder = "H:/dev/prj/UsingVTK/res/";
+#endif  // #ifdef( BUILD_LOCATION )
     return resFolder;
 }
 

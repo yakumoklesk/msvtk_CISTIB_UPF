@@ -23,8 +23,6 @@ project( VolumeRenderingTF CXX )
 
 set( VOLUME_RENDERING_TEST 0 CACHE BOOL "Build all of own tests." )
 
-LOG_DEBUG( "PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR}" )
-
 #Add our own include path
 include_directories(
   #${PROJECT_SOURCE_DIR}/src
