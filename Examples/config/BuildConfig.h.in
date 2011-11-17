@@ -1,0 +1,43 @@
+/*==============================================================================
+
+  Library: MSVTK
+
+  Copyright (c) Computational Image and Simulation Technologies in Biomedicine (CISTIB),
+                Universitat Pompeu Fabra (UPF), Barcelona, Spain
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0.txt
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+==============================================================================*/
+
+// This file will be parsed with CMake
+// Do not modify unless you know what you are doing
+
+// Build location definitions
+#define BUILD_FROM_UNKNOWN -1
+#define BUILD_FROM_WORK 0
+#define BUILD_FROM_HOME 1
+
+// GUI API used definitions
+#define GUI_API_NONE        @GUI_API_NONE_CONFIG@
+#define GUI_API_QT          @GUI_API_QT_CONFIG@
+#define GUI_API_WXWIDGETS   @GUI_API_WXWIDGETS_CONFIG@
+
+// Automatically configured values
+#define GUI_API             @GUI_API_CONFIG@
+#define BUILD_LOCATION      @Build_Location_CONFIG@
+
+#define USE_WXVTK           @USE_WXVTK_CONFIG@
+
+#define Examples_VERSION_MAJOR @Examples_VERSION_MAJOR@
+#define Examples_VERSION_MINOR @Examples_VERSION_MINOR@
+
