@@ -85,6 +85,8 @@ set( SRCS_VolumeRenderingTF
   src/vtkMultipleDataReader.cxx
   include/vtkMultipleStructuredPointsReader.h
   src/vtkMultipleStructuredPointsReader.cxx
+  include/vtkMultiplePolyDataReader.h
+  src/vtkMultiplePolyDataReader.cxx
   include/vtkTemporalDataSetTimeStepProvider.h
   src/vtkTemporalDataSetTimeStepProvider.cxx
   #msvVolumeRenderFactory

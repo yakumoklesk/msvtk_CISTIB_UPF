@@ -25,7 +25,11 @@
 #include <vtkGlobFileNames.h>
 #include "vtkMultipleDataReader.h"
 #include "vtkMultipleStructuredPointsReader.h"
+#include "vtkTemporalDataSetTimeStepProvider.h"
+#include "vtkTemporalDataSet.h"
+#include "vtkMultiplePolyDataReader.h"
 #include <vtkStructuredPoints.h>
+#include <vtkPolyData.h>
 #include <vtkStructuredPointsReader.h>
 #include <vtkStdString.h>
 #include <vtkStringArray.h>
@@ -37,6 +41,13 @@
 
 using namespace std;
 
+struct msvEntityInfoEntry
+{
+    msvEntity* Entity;
+    vtkSmartPointer<vtkMultipleDataReader> multipleDataReader;
+    vtkTemporalDataSetTimeStepProvider* TSProvider;
+};
+
 vtkStandardNewMacro( msvEntityMgr );
 
 msvEntityMgr::msvEntityMgr()
@@ -47,10 +58,15 @@ msvEntityMgr::msvEntityMgr()
 
 msvEntityMgr::~msvEntityMgr()
 {
-    vector<msvEntity*>::size_type index;
-    for( index = 0; index < m_Entities.size(); index++ )
+    vector<msvEntityInfoEntry*>::size_type index;
+    for( index = 0; index < m_EntityInfoEntries.size(); index++ )
     {
-        m_Entities[index]->Delete();
+        //m_EntityInfoEntries[index]->Delete();
+        //delete m_EntityInfoEntries[index];
+        m_EntityInfoEntries[index]->Entity->Delete();
+        m_EntityInfoEntries[index]->multipleDataReader->Delete();
+        m_EntityInfoEntries[index]->TSProvider->Delete();
+        delete m_EntityInfoEntries[index];
     }
 }
 
@@ -91,7 +107,20 @@ msvEntity* msvEntityMgr::CreateEntityFromSeriesOfStructuredPoints( vtkStringArra
 
 msvEntity* msvEntityMgr::CreateEntityFromSeries( vtkStringArray* series )
 {
-    msvEntity* resultEntity = 0;
+    msvEntity* resultEntity( 0 );
+    msvEntityInfoEntry* resultEntityInfoEntry( 0 );
+    resultEntityInfoEntry = CreateEntityInfoEntryFromSeries( series );
+    if( resultEntityInfoEntry != 0 )
+    {
+        resultEntity = resultEntityInfoEntry->Entity;
+    }
+
+    return resultEntity;
+}
+
+msvEntityInfoEntry* msvEntityMgr::CreateEntityInfoEntryFromSeries( vtkStringArray* series )
+{
+    msvEntityInfoEntry* resultEntityInfoEntry( 0 );
     vtkSmartPointer<vtkMultipleDataReader> multipleDataReaderSP = vtkSmartPointer<vtkMultipleDataReader>::New();
     int dataObjectType = multipleDataReaderSP->GetSeriesDataObjectType( series );
     if( dataObjectType >= 0 )
@@ -100,12 +129,45 @@ msvEntity* msvEntityMgr::CreateEntityFromSeries( vtkStringArray* series )
         {
             case VTK_POLY_DATA:
             {
+                vtkSmartPointer<vtkMultiplePolyDataReader> multiplePolyDataReaderSP = vtkSmartPointer<vtkMultiplePolyDataReader>::New();
+                multiplePolyDataReaderSP->SetFileNames( series );
+                vtkSmartPointer<vtkTemporalDataSetTimeStepProvider> temporalDataSetTimeStepProviderSP = vtkSmartPointer<vtkTemporalDataSetTimeStepProvider>::New();
+                temporalDataSetTimeStepProviderSP->SetInputConnection( multiplePolyDataReaderSP->GetOutputPort() );
+                temporalDataSetTimeStepProviderSP->SetCacheSize( 3 );
+                temporalDataSetTimeStepProviderSP->SetNextTimeStep( 0 );
+                temporalDataSetTimeStepProviderSP->Update();
+                vtkPolyData* polyData = vtkPolyData::SafeDownCast( temporalDataSetTimeStepProviderSP->GetOutput()->GetTimeStep( 0 ) );
+                if( polyData )
+                {
+                    resultEntityInfoEntry = new msvEntityInfoEntry;
+                    resultEntityInfoEntry->Entity = msvEntity::New();
+                    resultEntityInfoEntry->Entity->AddDataObject( polyData );
+                    resultEntityInfoEntry->multipleDataReader = multiplePolyDataReaderSP;
+                    resultEntityInfoEntry->TSProvider = temporalDataSetTimeStepProviderSP;
+                    m_EntityInfoEntries.push_back( resultEntityInfoEntry );
+                }
                 break;
             }
             case VTK_STRUCTURED_POINTS:
             {
-                resultEntity = CreateEntityFromSeriesOfStructuredPoints( series );
+                //resultEntity = CreateEntityFromSeriesOfStructuredPoints( series );
                 vtkSmartPointer<vtkMultipleStructuredPointsReader> multipleStructuredPointsReaderSP = vtkSmartPointer<vtkMultipleStructuredPointsReader>::New();
+                multipleStructuredPointsReaderSP->SetFileNames( series );
+                vtkSmartPointer<vtkTemporalDataSetTimeStepProvider> temporalDataSetTimeStepProviderSP = vtkSmartPointer<vtkTemporalDataSetTimeStepProvider>::New();
+                temporalDataSetTimeStepProviderSP->SetInputConnection( multipleStructuredPointsReaderSP->GetOutputPort() );
+                temporalDataSetTimeStepProviderSP->SetCacheSize( 3 );
+                temporalDataSetTimeStepProviderSP->SetNextTimeStep( 0 );
+                temporalDataSetTimeStepProviderSP->Update();
+                vtkStructuredPoints* structuredPoints = vtkStructuredPoints::SafeDownCast( temporalDataSetTimeStepProviderSP->GetOutput()->GetTimeStep( 0 ) );
+                if( structuredPoints )
+                {
+                    resultEntityInfoEntry = new msvEntityInfoEntry;
+                    resultEntityInfoEntry->Entity = msvEntity::New();
+                    resultEntityInfoEntry->Entity->AddDataObject( structuredPoints );
+                    resultEntityInfoEntry->multipleDataReader = multipleStructuredPointsReaderSP;
+                    resultEntityInfoEntry->TSProvider = temporalDataSetTimeStepProviderSP;
+                    m_EntityInfoEntries.push_back( resultEntityInfoEntry );
+                }
                 break;
             }
             case VTK_STRUCTURED_GRID:
@@ -123,7 +185,7 @@ msvEntity* msvEntityMgr::CreateEntityFromSeries( vtkStringArray* series )
         }
     }
 
-    return resultEntity;
+    return resultEntityInfoEntry;
 }
 
 msvEntity* msvEntityMgr::CreateEntityFromDirectory( const string& DirectoryName, const string& FileWildcard )
@@ -150,7 +212,7 @@ msvEntity* msvEntityMgr::CreateEntityFromDirectory( const string& DirectoryName,
     if( resultEntity != 0 )
     {
         // Maybe here should observe the delete event
-        m_Entities.push_back( resultEntity );
+        //m_Entities.push_back( resultEntity );
         // Assign the renderer if whe already have one
         if( m_AssignedRenderer != 0 )
         {
@@ -166,17 +228,18 @@ void msvEntityMgr::SetRenderer( vtkRenderer* assignedRenderer )
     //m_AssignedRenderer->Register( this );
     m_AssignedRenderer = assignedRenderer;
 
-    vector<msvEntity*>::iterator it;
-    for( it = m_Entities.begin(); it != m_Entities.end(); it++ )
+    vector<msvEntityInfoEntry*>::iterator it;
+    for( it = m_EntityInfoEntries.begin(); it != m_EntityInfoEntries.end(); it++ )
     {
-        (*it)->SetRenderer( assignedRenderer );
+        //(*it)->SetRenderer( assignedRenderer );
+        (*it)->Entity->SetRenderer( assignedRenderer );
     }
 }
 
-const vector<msvEntity*>& msvEntityMgr::GetEntitiesVector() const
-{
-    return m_Entities;
-}
+//const vector<msvEntity*>& msvEntityMgr::GetEntitiesVector() const
+//{
+//    return m_Entities;
+//}
 
 void msvEntityMgr::PrintSelf( ostream& os, vtkIndent indent )
 {

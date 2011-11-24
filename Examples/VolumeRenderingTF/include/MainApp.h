@@ -49,7 +49,7 @@ public:
     virtual int OnExit();
     virtual std::string GetCWD();
     std::string GetResouceFolderPath();
-    //virtual void OnIdle();
+    virtual void OnIdle();
 
 protected:
     void CreateAddInputVolumeActor();
@@ -74,6 +74,7 @@ protected:
     vtkSmartPointer<vtkPolyDataMapper>    m_PolyDataMapperSP;
     vtkSmartPointer<vtkActor>       m_PolyDataActorSP;
     vtkSmartPointer<msvEntity>      m_EntitySP;
+    vtkSmartPointer<msvEntity>      m_EntityPolyDataSP;
 
 
 

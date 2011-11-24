@@ -51,6 +51,11 @@ int msvAppBase::OnExit()
     return 0;
 }
 
+void msvAppBase::OnIdle()
+{
+
+}
+
 string msvAppBase::GetCWD()
 {
     return string();

@@ -33,36 +33,40 @@ class vtkStdString;
 class vtkRenderer;
 
 class msvEntity;
+struct msvEntityInfoEntry;
 
 class msvEntityMgr : public vtkObject
 {
 public:
-	vtkTypeMacro( msvEntityMgr, vtkObject );
-	// Description:
-	// Construct object
-	static msvEntityMgr* New();
+    vtkTypeMacro( msvEntityMgr, vtkObject );
+    // Description:
+    // Construct object
+    static msvEntityMgr* New();
 
-	msvEntityMgr();
-	~msvEntityMgr();
+    msvEntityMgr();
+    ~msvEntityMgr();
 
-	msvEntity* CreateEntityFromDirectory( const std::string& DirectoryName, const std::string& FileWildcard = "*" );
+    msvEntity* CreateEntityFromDirectory( const std::string& DirectoryName, const std::string& FileWildcard = "*" );
 
-	void SetRenderer( vtkRenderer* assignedRenderer );
+    void SetRenderer( vtkRenderer* assignedRenderer );
 
-	virtual void PrintSelf( ostream& os, vtkIndent indent );
+    virtual void PrintSelf( ostream& os, vtkIndent indent );
 
-	const std::vector<msvEntity*>& GetEntitiesVector() const;
-
-private:
-	msvEntity* CreateEntityFromSeriesOfStructuredPoints( vtkStringArray* series );
-	msvEntity* CreateEntityFromSeries( vtkStringArray* series );
+    //const std::vector<msvEntity*>& GetEntitiesVector() const;
 
 private:
+    msvEntity* CreateEntityFromSeriesOfStructuredPoints( vtkStringArray* series );
+    msvEntity* CreateEntityFromSeries( vtkStringArray* series );
+    msvEntityInfoEntry* CreateEntityInfoEntryFromSeries( vtkStringArray* series );
 
-	vtkRenderer*						m_AssignedRenderer;
-	std::vector<msvEntity*>             m_Entities;
+private:
+
+    vtkRenderer*                        m_AssignedRenderer;
+    //std::vector<msvEntity*>             m_Entities;
+    std::vector<msvEntityInfoEntry*>    m_EntityInfoEntries;
 };
 
 typedef vtkSmartPointer<msvEntityMgr>  msvEntityMgrSP;
 
-#endif	// #ifndef __MSVENTITYMGR_H__
+#endif  // #ifndef __MSVENTITYMGR_H__
+

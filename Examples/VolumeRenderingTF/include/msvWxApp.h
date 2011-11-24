@@ -45,7 +45,8 @@ public:
     virtual bool OnInit();
     virtual int OnExit();
     virtual void Exit();
-    void OnIdle( wxIdleEvent& event );
+    void OnIdlePlatformDependent( wxIdleEvent& event );
+    virtual void OnIdle();
     //virtual int OnRun();
 
 protected:

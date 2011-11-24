@@ -63,6 +63,7 @@
 #include "msvObjectFactory.h"
 #include <vtkTemporalDataSet.h>
 #include "vtkMultipleStructuredPointsReader.h"
+#include "vtkMultiplePolyDataReader.h"
 #include "vtkTemporalDataSetTimeStepProvider.h"
 
 
@@ -199,6 +200,23 @@ int MainApp::OnExit()
     return 0;
 }
 
+void MainApp::OnIdle()
+{
+/*
+    if( m_ElapsedTimeMillis > 40 )
+    {
+        const vector<msvEntity*>& entities = m_pmsvEntityMgr->GetEntitiesVector();
+        vector<msvEntity*>::size_type index;
+        for( index = 0; index < entities.size(); index++ )
+        {
+            entities[index]->Tick( 0 );
+        }
+        m_ElapsedTimeMillis = 0;
+    }
+    //m_pRenderWindowSP->Render();
+*/
+}
+
 string MainApp::GetCWD()
 {
     return string();
@@ -259,15 +277,17 @@ void MainApp::CreateSceneData()
     m_pRenderer->GetActiveCamera()->SetClippingRange(1,1000);
     */
 
-#define SHOW_VOLUME 0
-#define SHOW_PIECEDPOLYDATA 1
+#define SHOW_VOLUME 1
+#define SHOW_PIECEDPOLYDATA 0
 
     string resFolder = GetResouceFolderPath();
     string heartModelMRI_VOLUME = resFolder + "HeartModel/MRI";
+    string heartModelMRI_POLYDATA = resFolder + "HeartModel/MRI_fitting_LV";
 
 #if( SHOW_PIECEDPOLYDATA )
     string heartPolyData = resFolder + "LVComplete.vtk";
 
+    // With a set of structured points
     vtkSmartPointer<vtkMultipleStructuredPointsReader> multipleStructuredPointsReaderSP = vtkSmartPointer<vtkMultipleStructuredPointsReader>::New();
     multipleStructuredPointsReaderSP->SetDirectoryName( heartModelMRI_VOLUME.c_str() );
     multipleStructuredPointsReaderSP->SetWildCard( "*.vtk" );
@@ -305,6 +325,30 @@ void MainApp::CreateSceneData()
         m_EntitySP->SetRenderer( m_pRendererSP );
     }
 
+
+
+    // With a set of polydata
+    vtkSmartPointer<vtkMultiplePolyDataReader> multiplePolyDataReaderSP = vtkSmartPointer<vtkMultiplePolyDataReader>::New();
+    multiplePolyDataReaderSP->SetDirectoryName( heartModelMRI_POLYDATA.c_str() );
+    multiplePolyDataReaderSP->SetWildCard( "*.vtk" );
+    multiplePolyDataReaderSP->Update();
+
+    vtkSmartPointer<vtkTemporalDataSetTimeStepProvider> temporalDataSetTimeStepProviderPDSP = vtkSmartPointer<vtkTemporalDataSetTimeStepProvider>::New();
+    temporalDataSetTimeStepProviderPDSP->SetInputConnection( multiplePolyDataReaderSP->GetOutputPort() );
+    temporalDataSetTimeStepProviderPDSP->SetCacheSize( 3 );
+    temporalDataSetTimeStepProviderPDSP->SetNextTimeStep( 0 );
+    temporalDataSetTimeStepProviderPDSP->Update();
+
+    
+    vtkPolyData* polyData = vtkPolyData::SafeDownCast( temporalDataSetTimeStepProviderPDSP->GetOutput()->GetTimeStep( 0 ) );
+    if( polyData )
+    {
+        m_EntityPolyDataSP = vtkSmartPointer<msvEntity>::New();
+        m_EntityPolyDataSP->AddDataObject( polyData );
+        m_EntityPolyDataSP->SetRenderer( m_pRendererSP );
+    }
+
+
     vtkSmartPointer<vtkPolyDataReader> polyDataReaderSP = vtkSmartPointer<vtkPolyDataReader>::New();
     polyDataReaderSP->SetFileName( heartPolyData.c_str() );
     polyDataReaderSP->Update();
@@ -324,16 +368,16 @@ void MainApp::CreateSceneData()
 #endif
 
 #if( SHOW_VOLUME )
-    
+
     string heartModel3DUS = resFolder + "HeartModel/3DUS_images";
-    string heartModelMRI_VOLUME = resFolder + "HeartModel/MRI";
-    string heartModelMRI_POLYDATA = resFolder + "HeartModel/MRI_fitting_LV";
 
     if( m_pmsvEntityMgr != 0 )
     {
         m_pmsvEntityMgr->SetRenderer( m_pRendererSP );
-        msvEntity* loadedEntity;
-        loadedEntity = m_pmsvEntityMgr->CreateEntityFromDirectory( heartModelMRI_VOLUME, "*.vtk" );
+        msvEntity* structuredPointsEntity;
+        msvEntity* polyDataEntity;
+        structuredPointsEntity = m_pmsvEntityMgr->CreateEntityFromDirectory( heartModelMRI_VOLUME, "*.vtk" );
+        polyDataEntity = m_pmsvEntityMgr->CreateEntityFromDirectory( heartModelMRI_POLYDATA, "*.vtk" );
     }
 #endif
 

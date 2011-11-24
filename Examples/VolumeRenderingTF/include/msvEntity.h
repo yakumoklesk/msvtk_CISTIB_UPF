@@ -28,7 +28,9 @@
 
 #include <vector>
 
+class vtkDataSet;
 class vtkStructuredPoints;
+class vtkPolyData;
 class vtkRenderer;
 class vtkProp;
 class vtkAbstractMapper3D;
@@ -38,41 +40,44 @@ class vtkVolume;
 class msvEntity : public vtkProp3D
 {
 public:
-	vtkTypeMacro( msvEntity, vtkProp3D );
-	// Description:
-	// Construct object
-	static msvEntity* New();
+    vtkTypeMacro( msvEntity, vtkProp3D );
+    // Description:
+    // Construct object
+    static msvEntity* New();
 
-	// Add a frame
-	void AddDataObject( vtkStructuredPoints* dataObject );
+    // Add a frame
+    void AddDataObject( vtkStructuredPoints* dataObject );
+    void AddDataObject( vtkPolyData* dataObject );
 
-	// Set the renderer
-	void SetRenderer( vtkRenderer* assignedRenderer );
+    // Set the renderer
+    void SetRenderer( vtkRenderer* assignedRenderer );
 
-	// Updates having into account the elapsed time, in microseconds
-	void Tick( long elapsedTime );
+    // Updates having into account the elapsed time, in microseconds
+    void Tick( long elapsedTime );
 
-	// Description:
-	// Get the bounds for this Prop3D as (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
-	virtual double* GetBounds() { return 0; };
-	virtual void PrintSelf( ostream& os, vtkIndent indent );
+    // Description:
+    // Get the bounds for this Prop3D as (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
+    virtual double* GetBounds() { return 0; };
+    virtual void PrintSelf( ostream& os, vtkIndent indent );
 
 protected:
-	msvEntity();
-	~msvEntity();
+    msvEntity();
+    ~msvEntity();
 
 private:
 
-	vtkRenderer*						m_AssignedRenderer;
-	std::vector<vtkStructuredPoints*>	m_Frames;
-	std::vector<vtkProp*>				m_Props;
-	std::vector<vtkAbstractMapper3D*>   m_Mappers;
-	std::vector<vtkVolumeProperty*>     m_VolumeProperties;
-	//std::vector<vtkVolume*>             m_Volumes;
+    vtkRenderer*                        m_AssignedRenderer;
+    std::vector<vtkStructuredPoints*>   m_SPFrames;
+    std::vector<vtkDataSet*>            m_Frames;
+    std::vector<vtkProp*>               m_Props;
+    std::vector<vtkAbstractMapper3D*>   m_Mappers;
+    std::vector<vtkVolumeProperty*>     m_VolumeProperties;
+    //std::vector<vtkVolume*>             m_Volumes;
 
-	int                                 m_CurrentFrame;
+    int                                 m_CurrentFrame;
 };
 
 typedef vtkSmartPointer<msvEntity>  msvEntitySP;
 
 #endif	// #ifndef __MSVENTITY_H__
+

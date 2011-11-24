@@ -19,7 +19,7 @@
 
 ==============================================================================*/
 
-#include "vtkMultipleStructuredPointsReader.h"
+#include "vtkMultiplePolyDataReader.h"
 
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
@@ -27,8 +27,8 @@
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
-#include <vtkStructuredPointsReader.h>
-#include <vtkStructuredPoints.h>
+#include <vtkPolyDataReader.h>
+#include <vtkPolyData.h>
 #include <vtkTemporalDataSet.h>
 #include <vtkStringArray.h>
 
@@ -40,52 +40,51 @@
 
 using namespace std;
 
-vtkStandardNewMacro( vtkMultipleStructuredPointsReader );
+vtkStandardNewMacro( vtkMultiplePolyDataReader );
 
-vtkMultipleStructuredPointsReader::vtkMultipleStructuredPointsReader()
+vtkMultiplePolyDataReader::vtkMultiplePolyDataReader()
 {
-    m_DataObjectType = VTK_STRUCTURED_POINTS;
+    m_DataObjectType = VTK_POLY_DATA;
 }
 
-vtkMultipleStructuredPointsReader::~vtkMultipleStructuredPointsReader()
+vtkMultiplePolyDataReader::~vtkMultiplePolyDataReader()
 {
 }
-
 
 //----------------------------------------------------------------------------
-void vtkMultipleStructuredPointsReader::SetOutput( vtkTemporalDataSet* output )
+void vtkMultiplePolyDataReader::SetOutput( vtkTemporalDataSet* output )
 {
     this->GetExecutive()->SetOutputData( 0, output );
 }
 
 //----------------------------------------------------------------------------
-vtkTemporalDataSet* vtkMultipleStructuredPointsReader::GetOutput()
+vtkTemporalDataSet* vtkMultiplePolyDataReader::GetOutput()
 {
     return this->GetOutput(0);
 }
 
 //----------------------------------------------------------------------------
-vtkTemporalDataSet* vtkMultipleStructuredPointsReader::GetOutput(int idx)
+vtkTemporalDataSet* vtkMultiplePolyDataReader::GetOutput(int idx)
 {
     return vtkTemporalDataSet::SafeDownCast(this->GetOutputDataObject(idx));
 }
 
-vtkDataReader* vtkMultipleStructuredPointsReader::GetConcreteReaderInstance()
+vtkDataReader* vtkMultiplePolyDataReader::GetConcreteReaderInstance()
 {
-    return vtkStructuredPointsReader::New();
+    return vtkPolyDataReader::New();
 }
 
-void vtkMultipleStructuredPointsReader::SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep )
+void vtkMultiplePolyDataReader::SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep )
 {
-    vtkStructuredPointsReader* pStructuredPointsReader = vtkStructuredPointsReader::SafeDownCast( pDataReader );
-    if( pStructuredPointsReader )
+    vtkPolyDataReader* pPolyDataReader = vtkPolyDataReader::SafeDownCast( pDataReader );
+    if( pPolyDataReader )
     {
-        vtkStructuredPoints* pStructuredPoints = pStructuredPointsReader->GetOutput();
-        outputData->SetTimeStep( timeStep, pStructuredPoints );
+        vtkPolyData* pPolyData = pPolyDataReader->GetOutput();
+        outputData->SetTimeStep( timeStep, pPolyData );
     }
 }
 
-void vtkMultipleStructuredPointsReader::PrintSelf( ostream& os, vtkIndent indent )
+void vtkMultiplePolyDataReader::PrintSelf( ostream& os, vtkIndent indent )
 {
     this->Superclass::PrintSelf( os, indent );
 }

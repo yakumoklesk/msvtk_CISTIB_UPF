@@ -51,7 +51,7 @@ public:
     virtual int OnExit();
     virtual std::string GetCWD();
     std::string GetResouceFolderPath();
-    //virtual void OnIdle();
+    virtual void OnIdle();
 
 protected:
 

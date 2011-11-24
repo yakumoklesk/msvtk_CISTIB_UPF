@@ -54,7 +54,7 @@ bool msvWxApp::OnInit()
     msvAppBase::OnInit();
 
     m_CurrentTimeMillis = ::wxGetLocalTimeMillis();
-    Connect( wxEVT_IDLE, wxIdleEventHandler( msvWxApp::OnIdle ), 0, this );
+    Connect( wxEVT_IDLE, wxIdleEventHandler( msvWxApp::OnIdlePlatformDependent ), 0, this );
 
     // success: wxApp::OnRun() will be called which will enter the main message
     // loop and the application will run. If we returned FALSE here, the
@@ -67,12 +67,20 @@ int msvWxApp::OnExit()
     return msvAppBase::OnExit();
 }
 
-void msvWxApp::OnIdle( wxIdleEvent& event )
+void msvWxApp::OnIdle()
 {
-    wxApp::OnIdle( event );
+
+}
+
+void msvWxApp::OnIdlePlatformDependent( wxIdleEvent& event )
+{
+    //wxApp::OnIdle( event );
 
     wxLongLong currentTimeMillis = ::wxGetLocalTimeMillis();
     m_ElapsedTimeMillis = m_ElapsedTimeMillis + ( currentTimeMillis - m_CurrentTimeMillis );
+
+    //wxApp::OnIdle( event );
+    OnIdle();
 /*
     if( m_ElapsedTimeMillis > 40 )
     {

@@ -380,11 +380,33 @@ int vtkMultipleDataReader::GetSeriesDataObjectType( vtkStringArray* series )
 
 void vtkMultipleDataReader::SetFileNames( vtkStringArray* fileNames )
 {
-
+    // Notimg passed? Return;
+    if( !fileNames )
+    {
+        return;
+    }
+    // Have something?
+    if( this->FileNames )
+    {
+        // Same object? Return;
+        if( this->FileNames == fileNames )
+        {
+            return;
+        }
+        // TODO: Test every entry? Maybe more expensive than Delete + DeepCopy
+        this->FileNames->Delete();
+    }
+    this->FileNames = vtkStringArray::New();
+    this->FileNames->DeepCopy( fileNames );
 }
 
 vtkStringArray* vtkMultipleDataReader::GetFileNames()
 {
+    //if( this->FileNames )
+    //{
+    //    return this->FileNames;
+    //}
+
     vtkSmartPointer<vtkGlobFileNames> globFileNamesSP = vtkSmartPointer<vtkGlobFileNames>::New();
     globFileNamesSP->SetDirectory( this->DirectoryName );
     globFileNamesSP->RecurseOff();

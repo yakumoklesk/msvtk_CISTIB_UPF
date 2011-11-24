@@ -23,11 +23,13 @@
 
 #include <vtkObjectFactory.h>
 #include <vtkStructuredPoints.h>
+#include <vtkPolyData.h>
 #include <vtkRenderer.h>
 #include <vtkActor.h>
 #include <vtkVolumeProperty.h>
 #include <vtkVolume.h>
 #include <vtkGPUVolumeRayCastMapper.h>
+#include <vtkPolyDataMapper.h>
 
 #include <vector>
 
@@ -96,18 +98,42 @@ void msvEntity::AddDataObject( vtkStructuredPoints* dataObject )
     this->Modified();
 }
 
+void msvEntity::AddDataObject( vtkPolyData* dataObject )
+{
+    vtkPolyData* dataObjectCopy = vtkPolyData::New();
+    dataObjectCopy->DeepCopy( dataObject );
+    vtkPolyDataMapper* polyDataMapper = vtkPolyDataMapper::New();
+    polyDataMapper->SetInput( dataObject );
+    vtkActor* actor = vtkActor::New();
+    actor->SetMapper( polyDataMapper );
+
+    m_Frames.push_back( dataObjectCopy );
+    m_Mappers.push_back( polyDataMapper );
+    m_Props.push_back( actor );
+
+    this->Modified();
+}
+
 void msvEntity::SetRenderer( vtkRenderer* assignedRenderer )
 {
     //m_AssignedRenderer->Register( this );
     m_AssignedRenderer = assignedRenderer;
 
-    vector<vtkStructuredPoints*>::iterator it;
+    //vector<vtkStructuredPoints*>::iterator it;
+    vector<vtkDataSet*>::iterator it;
     for( it = m_Frames.begin(); it != m_Frames.end(); it++ )
     {
         //m_AssignedRenderer->AddActor( *it );
         //m_AssignedRenderer->AddVolume( );
     }
-    m_AssignedRenderer->AddVolume( m_Props[m_CurrentFrame] );
+    if( vtkActor::SafeDownCast( m_Props[m_CurrentFrame] ) != 0 )
+    {
+        m_AssignedRenderer->AddActor( m_Props[m_CurrentFrame] );
+    }
+    else if( vtkVolume::SafeDownCast( m_Props[m_CurrentFrame] ) != 0 )
+    {
+        m_AssignedRenderer->AddVolume( m_Props[m_CurrentFrame] );
+    }
 
     this->Modified();
 }
