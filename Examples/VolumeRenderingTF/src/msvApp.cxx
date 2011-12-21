@@ -31,6 +31,8 @@ using namespace std;
 
 
 msvAppBase::msvAppBase()
+: m_CurrentTimeMillis( 0 )
+, m_ElapsedTimeMillis( 0 )
 {
 
 }

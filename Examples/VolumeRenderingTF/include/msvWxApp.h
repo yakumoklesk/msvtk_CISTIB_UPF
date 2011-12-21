@@ -47,6 +47,7 @@ public:
     virtual void Exit();
     void OnIdlePlatformDependent( wxIdleEvent& event );
     virtual void OnIdle();
+    virtual void ResetElapsedTime();
     //virtual int OnRun();
 
 protected:
@@ -54,8 +55,8 @@ protected:
 protected:
 
 private:
-    wxLongLong                      m_CurrentTimeMillis;
-    wxLongLong                      m_ElapsedTimeMillis;
+    wxLongLong                      m_CurrentTimeMillisInternal;
+    wxLongLong                      m_ElapsedTimeMillisInternal;
 
     ExitCommand*                    m_ExitCommand;
 };

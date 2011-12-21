@@ -44,7 +44,7 @@ vtkStandardNewMacro( vtkMultipleStructuredPointsReader );
 
 vtkMultipleStructuredPointsReader::vtkMultipleStructuredPointsReader()
 {
-    m_DataObjectType = VTK_STRUCTURED_POINTS;
+    this->DataObjectType = VTK_STRUCTURED_POINTS;
 }
 
 vtkMultipleStructuredPointsReader::~vtkMultipleStructuredPointsReader()

@@ -18,10 +18,15 @@
 #
 ###########################################################################
 
+#set( ${PROJECT_NAME}_LIBRARY_DIR ${MSVTK_CISTIB_UPF_BINARY_DIR}/lib )
+#set( ${PROJECT_NAME}_EXECUTABLE_DIR ${MSVTK_CISTIB_UPF_BINARY_DIR}/bin )
+#set( PARENT_PROJECT_LIBRARY_DIR ${${PROJECT_NAME}_LIBRARY_DIR} )
+#set( PARENT_PROJECT_EXECUTABLE_DIR ${${PROJECT_NAME}_EXECUTABLE_DIR} )
+
 # Require CMake 2.8 or higher.
 cmake_minimum_required( VERSION 2.8.0 )
 
-project( MSVTK CXX )
+project( MSVTK )
 
 include( CMake/Common.cmake )
 
@@ -80,6 +85,19 @@ set( USE_WXVTK_CONFIG 0 )
 #  "${PROJECT_BINARY_DIR}/BuildConfig.h"
 #  )
 
+# Add some global options
+option( MSVTK_BUILD_SHARED_LIBS "" ON )
+
+
+# Add some VTK options
+option( MSVTK_VTK_DEBUG_LEAKS "" ON )
+option( MSVTK_VTK_LEGACY_REMOVE "" ON )
+set( MSVTK_VTK_BUILD_OPTIONS )
+list( APPEND MSVTK_VTK_BUILD_OPTIONS -DVTK_DEBUG_LEAKS:BOOL=${MSVTK_VTK_DEBUG_LEAKS} )
+list( APPEND MSVTK_VTK_BUILD_OPTIONS -DVTK_LEGACY_REMOVE:BOOL=${MSVTK_VTK_LEGACY_REMOVE} )
+
+LOG_DEBUG( "MSVTK_VTK_BUILD_OPTIONS ${MSVTK_VTK_BUILD_OPTIONS}" )
+
 #-----------------------------------------------------------------------------
 # Superbuild Option - Enabled by default
 #-
@@ -100,18 +118,92 @@ option( MSVTK_EXAMPLE_VolumeRenderingTF "VolumeRenderingTF example" ON )
 list( APPEND MSVTK_EXAMPLES_SUBDIRS VolumeRenderingTF )
 
 #-----------------------------------------------------------------------------
+# Coverage
+#
+option(WITH_COVERAGE "Enable/Disable coverage" OFF)
+
+#-----------------------------------------------------------------------------
+# Set coverage Flags
+#
+if(WITH_COVERAGE)
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(coverage_flags "-g -fprofile-arcs -ftest-coverage -O0 -DNDEBUG")
+    set(COVERAGE_CXX_FLAGS ${coverage_flags})
+    set(COVERAGE_C_FLAGS ${coverage_flags})
+  endif()
+endif()
+
+#-----------------------------------------------------------------------------
+# Additional CXX/C Flags
+#
+set(ADDITIONAL_C_FLAGS "" CACHE STRING "Additional C Flags")
+mark_as_advanced(ADDITIONAL_C_FLAGS)
+set(ADDITIONAL_CXX_FLAGS "" CACHE STRING "Additional CXX Flags")
+mark_as_advanced(ADDITIONAL_CXX_FLAGS)
+
+#-----------------------------------------------------------------------------
+# Set symbol visibility Flags
+#
+# MinGW does not export all symbols automatically, so no need to set flags
+#if(CMAKE_COMPILER_IS_GNUCXX AND NOT MINGW)
+#  set(VISIBILITY_CXX_FLAGS "-fvisibility=hidden -fvisibility-inlines-hidden")
+#endif()
+
+#-----------------------------------------------------------------------------
+# MSVTK C/CXX Flags
+#
+set(MSVTK_C_FLAGS "${CMAKE_C_FLAGS_INIT} ${COVERAGE_C_FLAGS} ${ADDITIONAL_C_FLAGS}")
+set(MSVTK_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} ${VISIBILITY_CXX_FLAGS} ${COVERAGE_CXX_FLAGS} ${ADDITIONAL_CXX_FLAGS}")
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+  set(cflags "-Wall -Wextra -Wpointer-arith -Winvalid-pch -Wcast-align -Wwrite-strings -D_FORTIFY_SOURCE=2")
+
+  #MSVTKFunctionCheckCompilerFlags("-fdiagnostics-show-option" cflags)
+  #MSVTKFunctionCheckCompilerFlags("-Wl,--no-undefined" cflags)
+
+  #MSVTKFunctionGetGccVersion(${CMAKE_CXX_COMPILER} GCC_VERSION)
+  # With older version of gcc supporting the flag -fstack-protector-all, an extra dependency to libssp.so
+  # is introduced. If gcc is smaller than 4.4.0 and the build type is Release let's not include the flag.
+  # Doing so should allow to build package made for distribution using older linux distro.
+  #if(${GCC_VERSION} VERSION_GREATER "4.4.0" OR (CMAKE_BUILD_TYPE STREQUAL "Debug" AND ${GCC_VERSION} VERSION_LESS "4.4.0"))
+  #  MSVTKFunctionCheckCompilerFlags("-fstack-protector-all" cflags)
+  #endif()
+  if(MINGW)
+    # suppress warnings about auto imported symbols
+    set(MSVTK_CXX_FLAGS "-Wl,--enable-auto-import ${MSVTK_CXX_FLAGS}")
+  endif()
+
+  set(MSVTK_C_FLAGS "${cflags} ${MSVTK_C_FLAGS}")
+  set(MSVTK_CXX_FLAGS "${cflags} -Woverloaded-virtual -Wold-style-cast -Wstrict-null-sentinel -Wsign-promo ${MSVTK_CXX_FLAGS}")
+endif()
+
+if(MSVC)
+  set(msvc_suppressed_warnings
+    "/wd4290" # C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+  )
+  set(MSVTK_CXX_FLAGS "${MSVTK_CXX_FLAGS} ${msvc_suppressed_warnings}")
+endif()
+
+#-----------------------------------------------------------------------------
 # QT
 #-
 include( msvMacroSetupQt )
-msvMacroSetupQt()
+#msvMacroSetupQt()
 
 #-----------------------------------------------------------------------------
 # Superbuild script
 #-
-if(MSVTK_SUPERBUILD)
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/CMake/SuperBuild")
+if( MSVTK_SUPERBUILD )
+  add_subdirectory( "${CMAKE_CURRENT_SOURCE_DIR}/CMake/SuperBuild" )
   return()
 endif()
+
+#-----------------------------------------------------------------------------
+# Set C/CXX Flags
+#
+set(CMAKE_CXX_FLAGS ${MSVTK_CXX_FLAGS} CACHE STRING "CMake C Flags" FORCE)
+set(CMAKE_C_FLAGS ${MSVTK_C_FLAGS} CACHE STRING "CMake CXX Flags" FORCE)
+
 
 # VTK_DIR should be set by Superbuild
 if( VTK_DIR )
@@ -128,10 +220,10 @@ endif()
 #set( REQUIRED_GTEST_VERSION ${MSVTK_REQUIRED_GTEST_VERSION} )
 #include( FindGTEST )
 
-#if( GUI_API EQUAL GUI_API_WXWIDGETS )
-#  set( REQUIRED_WXWIDGETS_VERSION ${MSVTK_REQUIRED_WXWIDGETS_VERSION} )
-#  include( FindWXWIDGETS )
-#endif()
+if( GUI_API EQUAL GUI_API_WXWIDGETS )
+  set( REQUIRED_WXWIDGETS_VERSION ${MSVTK_REQUIRED_WXWIDGETS_VERSION} )
+  include( FindWXWIDGETS )
+endif()
 
 #-----------------------------------------------------------------------------
 # MSVTK_SUPERBUILD_BINARY_DIR

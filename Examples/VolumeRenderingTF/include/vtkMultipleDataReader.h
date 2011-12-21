@@ -34,78 +34,86 @@ class vtkDataReader;
 class vtkMultipleDataReader : public vtkTemporalDataSetAlgorithm
 {
 public:
-  static vtkMultipleDataReader *New();
-  vtkTypeMacro( vtkMultipleDataReader, vtkTemporalDataSetAlgorithm );
-  void PrintSelf( ostream& os, vtkIndent indent );
+    static vtkMultipleDataReader *New();
+    vtkTypeMacro( vtkMultipleDataReader, vtkTemporalDataSetAlgorithm );
+    void PrintSelf( ostream& os, vtkIndent indent );
 
-  // Description:
-  // Specify the directory of the file set to read.
-  vtkSetStringMacro(DirectoryName);
-  vtkGetStringMacro(DirectoryName);
+    // Description:
+    // Specify the directory of the file set to read.
+    vtkSetStringMacro(DirectoryName);
+    vtkGetStringMacro(DirectoryName);
 
-  // Description:
-  // Specify the wildcard of the files set to read.
-  vtkSetStringMacro(WildCard);
-  vtkGetStringMacro(WildCard);
+    // Description:
+    // Specify the wildcard of the files set to read.
+    vtkSetStringMacro(WildCard);
+    vtkGetStringMacro(WildCard);
 
-  // Description:
-  // Specify the timesteps to be catched.
-  vtkSetMacro(CachedTimeSteps, int);
-  vtkGetMacro(CachedTimeSteps, int)
+    // Description:
+    // Specify the timesteps to be catched.
+    vtkSetMacro(CachedTimeSteps, int);
+    vtkGetMacro(CachedTimeSteps, int);
 
-  // Description:
-  // Set/Get the time steps the user wants to load
-  void SetRequestedTimesTeps( double* timeSteps, int numTimeSteps );
-  double* GetRequestedTimesTeps();
+    // Description:
+    // Specify to wrap the time steps requested. I a time step requested
+    // is greater than the available, wraps to the start
+    vtkSetMacro(TimeStepWrap, int);
+    vtkGetMacro(TimeStepWrap, int);
+    vtkBooleanMacro(TimeStepWrap, int);
 
-  // Description:
-  // Read the meta information from the list of files in the directory
-  virtual int ReadMetaData( vtkInformation* );
+    // Description:
+    // Set/Get the time steps the user wants to load
+    void SetRequestedTimesTeps( double* timeSteps, int numTimeSteps );
+    double* GetRequestedTimesTeps();
 
-  int GetDataObjectType( const vtkStdString& fileName );
-  int GetSeriesDataObjectType( vtkStringArray* series );
+    // Description:
+    // Read the meta information from the list of files in the directory
+    virtual int ReadMetaData( vtkInformation* );
 
-  void SetFileNames( vtkStringArray* fileNames );
-  vtkStringArray* GetFileNames();
+    int GetDataObjectType( const vtkStdString& fileName );
+    int GetSeriesDataObjectType( vtkStringArray* series );
 
-  // Will return the available number of time steps that can be read,
-  // not the actually stored in the vtkTemporalDataSet
-  int GetAvailableTimeSteps();
+    void SetFileNames( vtkStringArray* fileNames );
+    vtkStringArray* GetFileNames();
+
+    // Will return the available number of time steps that can be read,
+    // not the actually stored in the vtkTemporalDataSet
+    int GetAvailableTimeSteps();
 
 protected:
-  vtkMultipleDataReader();
-  ~vtkMultipleDataReader();
+    vtkMultipleDataReader();
+    virtual ~vtkMultipleDataReader();
 
-  virtual int ProcessRequest( vtkInformation*, vtkInformationVector**,
-                              vtkInformationVector* );
-  virtual int RequestData( vtkInformation*, vtkInformationVector**,
-                           vtkInformationVector* );
+    virtual int ProcessRequest( vtkInformation*, vtkInformationVector**,
+                                vtkInformationVector* );
+    virtual int RequestData( vtkInformation*, vtkInformationVector**,
+                             vtkInformationVector* );
 
-  virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector**,
-                                  vtkInformationVector* );
+    virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector**,
+                                    vtkInformationVector* );
 
-  virtual int RequestInformation( vtkInformation*, vtkInformationVector**,
-                                  vtkInformationVector* );
+    virtual int RequestInformation( vtkInformation*, vtkInformationVector**,
+                                    vtkInformationVector* );
 
-  // Get a concrete instance of the reader
-  virtual vtkDataReader* GetConcreteReaderInstance();
+    // Get a concrete instance of the reader
+    virtual vtkDataReader* GetConcreteReaderInstance();
 
-  // Sets in the output data of type vtkTemporalDataSet the time step data read from single file
-  virtual void SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep );
+    // Sets in the output data of type vtkTemporalDataSet the time step data read from single file
+    virtual void SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep );
 
 private:
-  vtkMultipleDataReader( const vtkMultipleDataReader& );  // Not implemented.
-  void operator=( const vtkMultipleDataReader& );  // Not implemented.
+    vtkMultipleDataReader( const vtkMultipleDataReader& );  // Not implemented.
+    void operator=( const vtkMultipleDataReader& );  // Not implemented.
 
 protected:
     char* DirectoryName;
     char* WildCard;
     vtkStringArray* FileNames;
-    int CachedTimeSteps;	// 0 means all
-    double* m_RequestedTimeSteps;
-    int m_NumRequestedTimeSteps;
-    int m_DataObjectType;
-    int m_NumAvailableTimeSteps;
+    int CachedTimeSteps;    // 0 means all
+    int TimeStepWrap;
+    double* RequestedTimeSteps;
+    int NumRequestedTimeSteps;
+    int DataObjectType;
+    int NumAvailableTimeSteps;
 
 };
 

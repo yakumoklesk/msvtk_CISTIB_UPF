@@ -52,21 +52,26 @@ public:
     virtual std::string GetCWD();
     std::string GetResouceFolderPath();
     virtual void OnIdle();
+    virtual void ResetElapsedTime() = 0;
 
 protected:
 
 protected:
+    long                            m_CurrentTimeMillis;
+    long                            m_ElapsedTimeMillis;
 
 private:
 
     //ExitCommand*                    m_ExitCommand;
 };
 
-#if( GUI_API == GUI_API_WXWIDGETS )
+#if( GUI_API == GUI_API_NONE )
+#elif( GUI_API == GUI_API_WXWIDGETS )
   #include "msvWxApp.h"
   #define msvApp msvWxApp
   #define msvGetApp wxGetApp
-  #define MSVTK_IMPLEMENT_APP IMPLEMENT_APP
+  //#define MSVTK_IMPLEMENT_APP IMPLEMENT_APP
+  #define MSVTK_IMPLEMENT_APP IMPLEMENT_APP_CONSOLE
 #endif
 
 

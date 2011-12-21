@@ -28,22 +28,22 @@
 class msvObjectFactory : public vtkObjectFactory
 {
 public:
-	// This allows wrong Leaks message dissapear
-	vtkTypeMacro( msvObjectFactory, vtkObjectFactory );
-	static msvObjectFactory* New();
+    // This allows wrong Leaks message dissapear
+    vtkTypeMacro( msvObjectFactory, vtkObjectFactory );
+    static msvObjectFactory* New();
 
-	// Must override, get the VTK_SOURCE_VERSION value
-	virtual const char* GetVTKSourceVersion();
-	// Must override, gets the description of this factoru
-	virtual const char* GetDescription();
+    // Must override, get the VTK_SOURCE_VERSION value
+    virtual const char* GetVTKSourceVersion();
+    // Must override, gets the description of this factoru
+    virtual const char* GetDescription();
 
-	static vtkObject* msvObjectFactoryCreatemsvRTRenderWindowInteractor();
+    static vtkObject* msvObjectFactoryCreatemsvRTRenderWindowInteractor();
 
 protected:
-	msvObjectFactory();
-	virtual ~msvObjectFactory();
+    msvObjectFactory();
+    virtual ~msvObjectFactory();
 
-	virtual vtkObject* CreateObject( const char* className );
+    virtual vtkObject* CreateObject( const char* className );
 
 };
 

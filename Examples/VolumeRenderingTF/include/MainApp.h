@@ -35,6 +35,12 @@ class msvEntity;
 class msvEntityMgr;
 class msvRTRenderWindowInteractor;
 class msvObjectFactory;
+class vtkThreadSafeRendererWrapper;
+class vtkThreadSafeRenderer;
+class vtkThreadSafeRenderWindow;
+class vtkThreadSafeRenderWindowInteractor;
+
+#define USE_THREADSAFE_RENDERER 0
 
 // Define a new application type, each program should derive a class from wxApp
 class MainApp: public msvApp
@@ -62,10 +68,18 @@ protected:
     void CreateAnimation();
 
 protected:
-    vtkRenderWindowInteractorSP     m_RenderWindowInteractorSP;
+    vtkThreadSafeRendererWrapper*   m_RendererWrapper;
     //vtkSmartPointer<msvRTRenderWindowInteractor> m_RenderWindowInteractorSP;
+#if( USE_THREADSAFE_RENDERER )
+    vtkThreadSafeRenderer*                  m_pRendererSP;
+    vtkThreadSafeRenderWindow*              m_pRenderWindowSP;
+    vtkThreadSafeRenderWindowInteractor*    m_RenderWindowInteractorSP;
+#else
     vtkRendererSP                   m_pRendererSP;
     vtkRenderWindowSP               m_pRenderWindowSP;
+    vtkRenderWindowInteractorSP     m_RenderWindowInteractorSP;
+#endif
+    
 
     msvEntityMgr*                   m_pmsvEntityMgr;
     msvObjectFactory*               m_pmsvObjectFactory;

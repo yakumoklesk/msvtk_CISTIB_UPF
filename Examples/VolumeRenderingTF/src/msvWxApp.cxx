@@ -53,7 +53,7 @@ bool msvWxApp::OnInit()
 {
     msvAppBase::OnInit();
 
-    m_CurrentTimeMillis = ::wxGetLocalTimeMillis();
+    m_CurrentTimeMillisInternal = ::wxGetLocalTimeMillis();
     Connect( wxEVT_IDLE, wxIdleEventHandler( msvWxApp::OnIdlePlatformDependent ), 0, this );
 
     // success: wxApp::OnRun() will be called which will enter the main message
@@ -77,27 +77,20 @@ void msvWxApp::OnIdlePlatformDependent( wxIdleEvent& event )
     //wxApp::OnIdle( event );
 
     wxLongLong currentTimeMillis = ::wxGetLocalTimeMillis();
-    m_ElapsedTimeMillis = m_ElapsedTimeMillis + ( currentTimeMillis - m_CurrentTimeMillis );
+    m_ElapsedTimeMillisInternal = m_ElapsedTimeMillisInternal + ( currentTimeMillis - m_CurrentTimeMillisInternal );
 
-    //wxApp::OnIdle( event );
+    m_ElapsedTimeMillis = static_cast<long>( m_ElapsedTimeMillisInternal.ToLong() );
+
+    m_CurrentTimeMillisInternal = currentTimeMillis;
+
     OnIdle();
-/*
-    if( m_ElapsedTimeMillis > 40 )
-    {
-        const vector<msvEntity*>& entities = m_pmsvEntityMgr->GetEntitiesVector();
-        vector<msvEntity*>::size_type index;
-        for( index = 0; index < entities.size(); index++ )
-        {
-            entities[index]->Tick( 0 );
-        }
 
-        m_ElapsedTimeMillis = 0;
-        //m_pRenderWindowSP->Render();
-    }
-    else
-    {
-        int a = 1;
-    }
-*/
+    event.RequestMore();
+}
+
+void msvWxApp::ResetElapsedTime()
+{
+    m_ElapsedTimeMillisInternal = 0;
+    m_ElapsedTimeMillis = 0;
 }
 

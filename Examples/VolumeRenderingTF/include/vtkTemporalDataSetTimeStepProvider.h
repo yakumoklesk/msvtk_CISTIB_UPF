@@ -30,39 +30,52 @@
 class vtkTemporalDataSetTimeStepProvider : public vtkTemporalDataSetCache
 {
 public:
-  static vtkTemporalDataSetTimeStepProvider *New();
-  vtkTypeMacro( vtkTemporalDataSetTimeStepProvider, vtkTemporalDataSetCache );
-  void PrintSelf( ostream& os, vtkIndent indent );
+    static vtkTemporalDataSetTimeStepProvider *New();
+    vtkTypeMacro( vtkTemporalDataSetTimeStepProvider, vtkTemporalDataSetCache );
+    void PrintSelf( ostream& os, vtkIndent indent );
 
-  // Description:
-  // Specify the next time step to be retrieved
-  vtkSetMacro(NextTimeStep, int);
-  /*/
-  void SetNextTimeStep( int NextTimeStep )
-  {
+    // Description:
+    // Specify the next time step to be retrieved
+    vtkSetMacro(NextTimeStep, int);
+    /*/
+    void SetNextTimeStep( int NextTimeStep )
+    {
     if( NextTimeStep != this->NextTimeStep )
     {
         this->NextTimeStep = NextTimeStep;
 
     }
-  };
-  /*/
-  vtkGetMacro(NextTimeStep, int);
+    };
+    /*/
+    vtkGetMacro(NextTimeStep, int);
+
+    // Description:
+    // Specify to wrap the time steps requested. I a time step requested
+    // is greater than the available, wraps to the start
+    vtkSetMacro(TimeStepWrap, int);
+    vtkGetMacro(TimeStepWrap, int);
+    vtkBooleanMacro(TimeStepWrap, int);
+
 
 protected:
-  vtkTemporalDataSetTimeStepProvider();
-  ~vtkTemporalDataSetTimeStepProvider();
+    vtkTemporalDataSetTimeStepProvider();
+    ~vtkTemporalDataSetTimeStepProvider();
 
-  int NextTimeStep;
+    int NextTimeStep;
+    int SourceMaxAvailableTimeSteps;
+    int TimeStepWrap;
 
-  virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector** ,
+    virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector** ,
                                   vtkInformationVector* );
 
-  virtual int FillOutputPortInformation(int port, vtkInformation* info);
+    virtual int RequestInformation( vtkInformation*, vtkInformationVector**,
+      vtkInformationVector* );
+
+    virtual int FillOutputPortInformation(int port, vtkInformation* info);
 
 private:
-  vtkTemporalDataSetTimeStepProvider( const vtkTemporalDataSetTimeStepProvider& );  // Not implemented.
-  void operator=( const vtkTemporalDataSetTimeStepProvider& );  // Not implemented.
+    vtkTemporalDataSetTimeStepProvider( const vtkTemporalDataSetTimeStepProvider& );  // Not implemented.
+    void operator=( const vtkTemporalDataSetTimeStepProvider& );  // Not implemented.
 };
 
 #endif	// #ifndef __VTKTEMPORALDATASETTIMESTEPPROVIDER_H__

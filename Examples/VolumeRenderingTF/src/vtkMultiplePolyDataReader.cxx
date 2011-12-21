@@ -44,7 +44,7 @@ vtkStandardNewMacro( vtkMultiplePolyDataReader );
 
 vtkMultiplePolyDataReader::vtkMultiplePolyDataReader()
 {
-    m_DataObjectType = VTK_POLY_DATA;
+    this->DataObjectType = VTK_POLY_DATA;
 }
 
 vtkMultiplePolyDataReader::~vtkMultiplePolyDataReader()
@@ -80,7 +80,13 @@ void vtkMultiplePolyDataReader::SetOutputTimeStep( vtkDataReader* pDataReader, v
     if( pPolyDataReader )
     {
         vtkPolyData* pPolyData = pPolyDataReader->GetOutput();
-        outputData->SetTimeStep( timeStep, pPolyData );
+        //vtkPolyData* pTimeStep = vtkPolyData::New();
+        //pTimeStep->ShallowCopy( pPolyData );
+        // Use smartpointer, if not at the end of the application de data is not
+        // release correctly
+        vtkSmartPointer<vtkPolyData> pTimeStep = vtkSmartPointer<vtkPolyData>::New();
+        pTimeStep->ShallowCopy( pPolyData );
+        outputData->SetTimeStep( timeStep, pTimeStep );
     }
 }
 

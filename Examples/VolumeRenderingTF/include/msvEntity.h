@@ -27,15 +27,16 @@
 #include <vtkSmartPointer.h>
 
 #include <vector>
+#include <limits>
 
-class vtkDataSet;
 class vtkStructuredPoints;
 class vtkPolyData;
 class vtkRenderer;
-class vtkProp;
-class vtkAbstractMapper3D;
-class vtkVolumeProperty;
-class vtkVolume;
+class vtkThreadSafeRenderer;
+class vtkTemporalDataSetTimeStepProvider;
+class msvEntityMgr;
+
+class msvEntityImpl;
 
 class msvEntity : public vtkProp3D
 {
@@ -45,12 +46,26 @@ public:
     // Construct object
     static msvEntity* New();
 
+    // Sets the Entity Manager
+    void SetEntityMgr( msvEntityMgr* entityMgr );
+
     // Add a frame
     void AddDataObject( vtkStructuredPoints* dataObject );
     void AddDataObject( vtkPolyData* dataObject );
 
+    // Set current timestep
+    void SetCurrentTimeStepData( vtkStructuredPoints* dataObject, int timeStepNumber = std::numeric_limits<int>::min() );
+    void SetCurrentTimeStepData( vtkPolyData* dataObject, int timeStepNumber = std::numeric_limits<int>::min() );
+
+    // Returns if has any frame
+    bool HasAnyTimeStep();
+
     // Set the renderer
+    void SetRenderer( vtkThreadSafeRenderer* assignedRenderer );
     void SetRenderer( vtkRenderer* assignedRenderer );
+
+    // Set the provider of time steps
+    void SetTimeStepProvider( vtkTemporalDataSetTimeStepProvider* timeStepProvider );
 
     // Updates having into account the elapsed time, in microseconds
     void Tick( long elapsedTime );
@@ -65,16 +80,8 @@ protected:
     ~msvEntity();
 
 private:
+    msvEntityImpl*                      Impl;
 
-    vtkRenderer*                        m_AssignedRenderer;
-    std::vector<vtkStructuredPoints*>   m_SPFrames;
-    std::vector<vtkDataSet*>            m_Frames;
-    std::vector<vtkProp*>               m_Props;
-    std::vector<vtkAbstractMapper3D*>   m_Mappers;
-    std::vector<vtkVolumeProperty*>     m_VolumeProperties;
-    //std::vector<vtkVolume*>             m_Volumes;
-
-    int                                 m_CurrentFrame;
 };
 
 typedef vtkSmartPointer<msvEntity>  msvEntitySP;

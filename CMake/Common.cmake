@@ -22,11 +22,18 @@
 # Update CMake module path
 # Note: FindXXX.cmake script specific to utility should be copied into Utilities/CMake
 #
-  #"${CMAKE_CURRENT_SOURCE_DIR}/Utilities/CMake"
-  
-set( CMAKE_MODULE_PATH
-  "${CMAKE_CURRENT_SOURCE_DIR}/CMake"
-  ${CMAKE_MODULE_PATH})
+#"${CMAKE_CURRENT_SOURCE_DIR}/Utilities/CMake"
+
+
+
+#message( "CMAKE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}" )
+
+if( NOT CMAKE_MODULE_PATH )
+  set( CMAKE_MODULE_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake"
+    ${CMAKE_MODULE_PATH}
+  )
+endif()
 
 include( Logging )
 

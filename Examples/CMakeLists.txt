@@ -18,8 +18,29 @@
 #
 ###########################################################################
 
-project( Examples CXX )
+# Require CMake 2.8 or higher.
+cmake_minimum_required( VERSION 2.8.0 )
 
+# David Lucena: I want to allow to build the examples directories by providing my
+# own external libraries sources, but also make it compatible with the normal MSVTK
+# build, this is why I test if I am being included or not
+
+get_directory_property( LISTFILE_STACK_VALUE LISTFILE_STACK )
+#message( "LISTFILE_STACK_VALUE ${LISTFILE_STACK_VALUE}" )
+list( LENGTH LISTFILE_STACK_VALUE NUMBER_OF_CURRENT_PROCESSING_FILES )
+if( NUMBER_OF_CURRENT_PROCESSING_FILES EQUAL 1 )
+  list( GET LISTFILE_STACK_VALUE 0 CURRENT_PROCESSING_FILE )
+  get_filename_component( CURRENT_PROCESSING_FILE_PATH ${CURRENT_PROCESSING_FILE} PATH )
+  #message( "CURRENT_PROCESSING_FILE ${CURRENT_PROCESSING_FILE}" )
+  #message( "CURRENT_PROCESSING_FILE_PATH ${CURRENT_PROCESSING_FILE_PATH}" )
+  set( CMAKE_MODULE_PATH
+    "${CURRENT_PROCESSING_FILE_PATH}/../CMake"
+    ${CMAKE_MODULE_PATH}
+  )
+  include( ${CURRENT_PROCESSING_FILE_PATH}/../CMake/Common.cmake )
+endif()
+
+project( Examples CXX )
 
 # Set some variables to substitute in config file
 set( Examples_VERSION_MAJOR 1 )

@@ -44,7 +44,7 @@ public:
 
 protected:
     vtkMultiplePolyDataReader();
-    ~vtkMultiplePolyDataReader();
+    virtual ~vtkMultiplePolyDataReader();
 
 
     virtual vtkDataReader* GetConcreteReaderInstance();

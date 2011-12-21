@@ -20,53 +20,45 @@
 ==============================================================================*/
 
 
-#ifndef __MSVENTITYMGR_H__
-#define __MSVENTITYMGR_H__
+#ifndef __VTKTHREADSAFERENDERERWRAPPER_H__
+#define __VTKTHREADSAFERENDERERWRAPPER_H__
 
-#include <vtkProp3D.h>
+#include <vtkObject.h>
 #include <vtkSmartPointer.h>
+#include <vtkMultiThreader.h>
 
 #include <vector>
 
 class vtkRenderer;
+class vtkMutexLock;
 
-class msvEntity;
-struct msvEntityInfoEntry;
-
-class msvEntityMgrImpl;
-
-class msvEntityMgr : public vtkObject
+class vtkThreadSafeRendererWrapper : public vtkObject
 {
 public:
-    vtkTypeMacro( msvEntityMgr, vtkObject );
+    vtkTypeMacro( vtkThreadSafeRendererWrapper, vtkObject );
     // Description:
     // Construct object
-    static msvEntityMgr* New();
+    static vtkThreadSafeRendererWrapper* New();
 
-
-    msvEntity* CreateEntityFromDirectory( const std::string& DirectoryName, const std::string& FileWildcard = "*" );
-
-    void SetRenderer( vtkRenderer* assignedRenderer );
+    void LockRenderer();
+    void UnlockRenderer();
+    vtkRenderer* SafeGetRenderer();
 
     virtual void PrintSelf( ostream& os, vtkIndent indent );
 
-    // Fills a petition to provide new time steps to the entity that asks for it
-    void RequestSequentialTimeSteps( msvEntity* requesterEntity, int firstTimeStepRequested = 0, int timeStepsRequested = 1 );
-    void RequestNextSequentialTimeStep( msvEntity* requesterEntity );
-
-    // Updates having into account the elapsed time, in microseconds
-    void Tick( long elapsedTime );
-
 protected:
-    msvEntityMgr();
-    ~msvEntityMgr();
+    vtkThreadSafeRendererWrapper();
+    ~vtkThreadSafeRendererWrapper();
 
 private:
 
-    msvEntityMgrImpl*                   Impl;
+    vtkRenderer*                        WrappedRenderer;
+    vtkMutexLock*                       RendererMutex;
+    vtkMultiThreaderIDType              LockOwnerThreadID;
+
 };
 
-typedef vtkSmartPointer<msvEntityMgr>  msvEntityMgrSP;
+typedef vtkSmartPointer<vtkThreadSafeRendererWrapper>  vtkThreadSafeRendererWrapperSP;
 
-#endif  // #ifndef __MSVENTITYMGR_H__
+#endif	// #ifndef __VTKTHREADSAFERENDERERWRAPPER_H__
 

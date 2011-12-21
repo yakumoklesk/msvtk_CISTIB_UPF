@@ -43,10 +43,10 @@ vtkMultipleDataReader::vtkMultipleDataReader()
 , WildCard( 0 )
 , FileNames( 0 )
 , CachedTimeSteps( 0 )
-, m_RequestedTimeSteps( 0 )
-, m_NumRequestedTimeSteps( 0 )
-, m_DataObjectType( VTK_DATA_OBJECT )
-, m_NumAvailableTimeSteps( 0 )
+, RequestedTimeSteps( 0 )
+, NumRequestedTimeSteps( 0 )
+, DataObjectType( VTK_DATA_OBJECT )
+, NumAvailableTimeSteps( 0 )
 {
     this->SetNumberOfInputPorts( 0 );
 }
@@ -65,36 +65,36 @@ vtkMultipleDataReader::~vtkMultipleDataReader()
     {
         this->FileNames->Delete();
     }
-    if( this->m_RequestedTimeSteps )
+    if( this->RequestedTimeSteps )
     {
-        delete this->m_RequestedTimeSteps;
+        delete this->RequestedTimeSteps;
     }
 }
 
 void vtkMultipleDataReader::SetRequestedTimesTeps( double* timeSteps, int numTimeSteps )
 {
     // TODO?: Compare first?
-    if( this->m_RequestedTimeSteps )
+    if( this->RequestedTimeSteps )
     {
-        delete this->m_RequestedTimeSteps;
+        delete this->RequestedTimeSteps;
     }
-    m_NumRequestedTimeSteps = numTimeSteps;
-    m_RequestedTimeSteps = new double[m_NumRequestedTimeSteps];
-    for( int indexTimeStep = 0; indexTimeStep < m_NumRequestedTimeSteps; indexTimeStep++ )
+    this->NumRequestedTimeSteps = numTimeSteps;
+    this->RequestedTimeSteps = new double[this->NumRequestedTimeSteps];
+    for( int indexTimeStep = 0; indexTimeStep < this->NumRequestedTimeSteps; indexTimeStep++ )
     {
-        m_RequestedTimeSteps[indexTimeStep] = timeSteps[indexTimeStep];
+        this->RequestedTimeSteps[indexTimeStep] = timeSteps[indexTimeStep];
     }
     this->Modified();
 }
 
 double* vtkMultipleDataReader::GetRequestedTimesTeps()
 {
-    if( this->m_RequestedTimeSteps )
+    if( this->RequestedTimeSteps )
     {
-        double* result = new double[m_NumRequestedTimeSteps];
-        for( int indexTimeStep = 0; indexTimeStep < m_NumRequestedTimeSteps; indexTimeStep++ )
+        double* result = new double[this->NumRequestedTimeSteps];
+        for( int indexTimeStep = 0; indexTimeStep < this->NumRequestedTimeSteps; indexTimeStep++ )
         {
-            result[indexTimeStep] = m_RequestedTimeSteps[indexTimeStep];
+            result[indexTimeStep] = this->RequestedTimeSteps[indexTimeStep];
         }
         return result;
     }
@@ -163,21 +163,29 @@ int vtkMultipleDataReader::ReadMetaData( vtkInformation *outInfo )
     if( !this->FileNames )
     {
         this->FileNames = this->GetFileNames();
-        if( ( !this->FileNames ) || ( ( numDataTimeSteps = this->FileNames->GetNumberOfTuples() ) <= 0 ) )
+        if( !this->FileNames )
         {
-            vtkErrorMacro(<< "No filenames were found in " << this->DirectoryName << " with pattern " << this->WildCard);
-            return 0;
+             numDataTimeSteps = this->FileNames->GetNumberOfTuples();
+             if( numDataTimeSteps <= 0 )
+             {
+                vtkErrorMacro(<< "No filenames were found in " << this->DirectoryName << " with pattern " << this->WildCard);
+                return 0;
+             }
         }
     }
-
-    if( this->GetSeriesDataObjectType( this->FileNames ) != m_DataObjectType )
+    else
     {
-        vtkErrorMacro(<< "Input data is not of type " << vtkDataObjectTypes::GetClassNameFromTypeId( m_DataObjectType ) );
+        numDataTimeSteps = this->FileNames->GetNumberOfTuples();
+    }
+
+    if( this->GetSeriesDataObjectType( this->FileNames ) != this->DataObjectType )
+    {
+        vtkErrorMacro(<< "Input data is not of type " << vtkDataObjectTypes::GetClassNameFromTypeId( this->DataObjectType ) );
         return 0;
     }
 
 
-    m_NumRequestedTimeSteps = numDataTimeSteps;
+    this->NumAvailableTimeSteps = numDataTimeSteps;
     double* dataTimeSteps = new double[numDataTimeSteps];
     for( int timeStep = 0; timeStep < numDataTimeSteps; timeStep++ )
     {
@@ -210,9 +218,9 @@ int vtkMultipleDataReader
         ( outInfo->Length( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) <= 0 ) )
     {
         // If not, then fill the user requested time steps
-        if( m_NumRequestedTimeSteps > 0 )
+        if( this->NumRequestedTimeSteps > 0 )
         {
-            outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS(), m_RequestedTimeSteps, m_NumRequestedTimeSteps );
+            outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS(), this->RequestedTimeSteps, this->NumRequestedTimeSteps );
         }
         else
         {
@@ -223,7 +231,27 @@ int vtkMultipleDataReader
     {
         int numUpdatedTimeSteps( outInfo->Length( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) );
         double* updateTimeSteps( outInfo->Get( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) );
-        int a = 1;
+/*
+        // If wrap is set, then recalc the correct time steps requested
+        if( this->TimeStepWrap )
+        {
+            for( int i = 0; i < numUpdatedTimeSteps; i++ )
+            {
+                double timeStepToLoad = updateTimeSteps[i];
+
+                if( timeStepToLoad >= this->NumAvailableTimeSteps )
+                {
+                    timeStepToLoad -= this->NumAvailableTimeSteps;
+                    updateTimeSteps[i] = timeStepToLoad;
+                }
+            }
+        }
+        else
+        {
+            // Error!?
+            //vtkErrorMacro(<< "RequestData requested non available time steps and TimeStepWrap is not set in class vtkMultipleDataReader" );
+        }
+*/
     }
 
     return 1;
@@ -235,10 +263,10 @@ int vtkMultipleDataReader::RequestData(
     vtkInformationVector *outputVector)
 {
     vtkInformation *outInfo = outputVector->GetInformationObject(0);
-    this->SetErrorCode( vtkErrorCode::NoError );
-    int done=0;
     vtkTemporalDataSet *outputData = vtkTemporalDataSet::SafeDownCast(
         outInfo->Get(vtkDataObject::DATA_OBJECT()));
+    this->SetErrorCode( vtkErrorCode::NoError );
+    int done=0;
 
     // ImageSource superclass does not do this.
     //outputData->ReleaseData();
@@ -270,6 +298,21 @@ int vtkMultipleDataReader::RequestData(
         while( leftTimeSteps )
         {
             int timeStepToLoad = updateTimeSteps[indexTimeStep];
+            if( this->TimeStepWrap )
+            {
+                if( timeStepToLoad >= this->NumAvailableTimeSteps )
+                {
+                    timeStepToLoad -= this->NumAvailableTimeSteps;
+                }
+            }
+            else
+            {
+                if( timeStepToLoad >= this->NumAvailableTimeSteps )
+                {
+                    // Error!?
+                    vtkErrorMacro(<< "RequestData requested non available time steps and TimeStepWrap is not set in class vtkMultipleDataReader" );
+                }
+            }
 
             dataReaderSP->SetFileName( this->FileNames->GetValue( timeStepToLoad ) );
             dataReaderSP->Update();
@@ -428,7 +471,7 @@ int vtkMultipleDataReader::GetAvailableTimeSteps()
     // Update the information. If we are already up to date, it will not execute
     this->UpdateInformation();
 
-    return m_NumAvailableTimeSteps;
+    return this->NumAvailableTimeSteps;
 }
 
 
@@ -443,8 +486,8 @@ void vtkMultipleDataReader::PrintSelf( ostream& os, vtkIndent indent )
     //int CachedTimeSteps;	// 0 means all
     //double* m_RequestedTimeSteps;
     
-    os << indent << "m_RequestedTimeSteps: " << this->m_RequestedTimeSteps << "\n";
-    os << indent << "m_DataObjectType: " << this->m_DataObjectType << "\n";
-    os << indent << "m_NumAvailableTimeSteps: " << this->m_NumAvailableTimeSteps << "\n";
+    os << indent << "RequestedTimeSteps: " << this->RequestedTimeSteps << "\n";
+    os << indent << "DataObjectType: " << this->DataObjectType << "\n";
+    os << indent << "NumAvailableTimeSteps: " << this->NumAvailableTimeSteps << "\n";
 }
 

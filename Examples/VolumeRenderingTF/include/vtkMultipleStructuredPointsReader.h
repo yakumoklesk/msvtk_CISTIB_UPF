@@ -44,7 +44,7 @@ public:
 
 protected:
     vtkMultipleStructuredPointsReader();
-    ~vtkMultipleStructuredPointsReader();
+    virtual ~vtkMultipleStructuredPointsReader();
 
 
     virtual vtkDataReader* GetConcreteReaderInstance();

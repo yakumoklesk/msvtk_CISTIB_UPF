@@ -20,6 +20,24 @@
 
 project( VolumeRenderingTF CXX )
 
+# Should not be configured if already configured in Examples/CMakeLists.txt
+# Setting configuration file source and destination
+configure_file(
+  "${PROJECT_SOURCE_DIR}/../config/BuildConfig.h.in"
+  "${PROJECT_BINARY_DIR}/BuildConfig.h"
+)
+
+# Add the directory where the output configuration file is
+include_directories( "${PROJECT_BINARY_DIR}" )
+
+include_directories(
+  ${PROJECT_SOURCE_DIR}/../common/include
+)
+
+set( SRCS_Common
+  ${PROJECT_SOURCE_DIR}/../common/include/VtkExtTypes.h
+  ${PROJECT_BINARY_DIR}/BuildConfig.h
+)
 
 set( VOLUME_RENDERING_TEST 0 CACHE BOOL "Build all of own tests." )
 
@@ -87,12 +105,23 @@ set( SRCS_VolumeRenderingTF
   src/vtkMultipleStructuredPointsReader.cxx
   include/vtkMultiplePolyDataReader.h
   src/vtkMultiplePolyDataReader.cxx
+  include/msvThreadSafeGetSet.h
   include/vtkTemporalDataSetTimeStepProvider.h
   src/vtkTemporalDataSetTimeStepProvider.cxx
+  include/vtkThreadSafeRendererWrapper.h
+  src/vtkThreadSafeRendererWrapper.cxx
+  include/vtkThreadSafeRenderer.h
+  src/vtkThreadSafeRenderer.cxx
+  include/vtkThreadSafeRenderWindow.h
+  src/vtkThreadSafeRenderWindow.cxx
+  include/vtkThreadSafeRenderWindowInteractor.h
+  src/vtkThreadSafeRenderWindowInteractor.cxx
   #msvVolumeRenderFactory
   #msvGraphicsFactory
   )
 
+LOG_DEBUG( "COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE}" )
+  
 add_executable( wxVolumeRenderingTF ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_VolumeRenderingTF} )
 
 install( TARGETS

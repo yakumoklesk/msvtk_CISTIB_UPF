@@ -166,6 +166,11 @@ if(APPLE)
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
 endif()
 
+
+LOG_DEBUG( "MSVTK_BUILD_SHARED_LIBS ${MSVTK_BUILD_SHARED_LIBS}" )
+LOG_DEBUG( "CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}" )
+
+
 #-----------------------------------------------------------------------------
 # MSVTK Configure
 #

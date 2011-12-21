@@ -34,6 +34,7 @@ vtkStandardNewMacro( vtkTemporalDataSetTimeStepProvider );
 
 vtkTemporalDataSetTimeStepProvider::vtkTemporalDataSetTimeStepProvider()
 : NextTimeStep( 0 )
+, SourceMaxAvailableTimeSteps( 0 )
 {
     this->SetNumberOfInputPorts( 1 );
     this->SetNumberOfInputPorts( 1 );
@@ -53,6 +54,32 @@ void vtkTemporalDataSetTimeStepProvider::SetNextTimeStep( int NextTimeStep )
 }
 */
 
+int vtkTemporalDataSetTimeStepProvider::RequestInformation(
+    vtkInformation *,
+    vtkInformationVector **,
+    vtkInformationVector *outputVector)
+{
+    // This is called every time this->NextTimeStep is changed
+    // Is really necessary that this->NextTimeStep change produces an update
+    // of the information? I think not, but if not probably the algorithm
+    // would not update neither
+    vtkInformation *outInfo = outputVector->GetInformationObject(0);
+
+    // We don't want that pipeline set the UPDATE_TIME_STEPS to { 0.0 }, so we init
+    // the extents ourselves, set our UPDATE_TIME_STEPS to lengh 0 and mark 
+    // UPDATE_EXTEND_INITIALIZED
+    vtkStreamingDemandDrivenPipeline *sddp = 
+        vtkStreamingDemandDrivenPipeline::SafeDownCast( this->GetExecutive() );
+    if( sddp )
+    {
+        int numAvailableTimeSteps( outInfo->Length( vtkStreamingDemandDrivenPipeline::TIME_STEPS() ) );
+        //double* availableTimeSteps( outInfo->Get( vtkStreamingDemandDrivenPipeline::TIME_STEPS() ) );
+        this->SourceMaxAvailableTimeSteps = numAvailableTimeSteps;
+    }
+
+    return 1;
+}
+
 //----------------------------------------------------------------------------
 int vtkTemporalDataSetTimeStepProvider
 ::RequestUpdateExtent (vtkInformation* request,
@@ -71,7 +98,19 @@ int vtkTemporalDataSetTimeStepProvider
         double* updateTimeSteps = new double[numUpdateTimeSteps];
         for( int indexCache = 0; indexCache < this->CacheSize; indexCache++ )
         {
-            updateTimeSteps[indexCache] = ( this->NextTimeStep + indexCache );
+            double requestedTimeStep = this->NextTimeStep + indexCache;
+            if( requestedTimeStep >= this->SourceMaxAvailableTimeSteps )
+            {
+                if( TimeStepWrap )
+                {
+                    requestedTimeStep -= this->SourceMaxAvailableTimeSteps;
+                }
+                else
+                {
+                    vtkDebugMacro(<<"Requesting time step beyond maximun available at source!");
+                }
+            }
+            updateTimeSteps[indexCache] = requestedTimeStep;
         }
         outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS(), updateTimeSteps, numUpdateTimeSteps );
 
