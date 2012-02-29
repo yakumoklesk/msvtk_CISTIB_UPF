@@ -129,6 +129,24 @@ MainApp::MainApp()
 
 }
 
+MainApp::MainApp( int &argc, char **argv )
+: msvApp( argc, argv )
+, m_VolumeReaderSP( 0 )
+, m_StructuredPointsReader( 0 )
+, m_VolumeSP( 0 )
+, m_VolumeMapperSP( 0 )
+, m_VolumeActorSP( 0 )
+, m_VolumeTextureMapper3DSP( 0 )
+, m_GPUVolumeMapperSP( 0 )
+, m_ColorTransferFunctionSP( 0 )
+, m_SalarOpacityTransferFunctionSP( 0 )
+, m_GradientOpacityTransferFunctionSP( 0 )
+, m_VolumePropertySP( 0 )
+, m_AnimationSceneSP( 0 )
+, m_pmsvEntityMgr( 0 )
+, m_pmsvObjectFactory( 0 )
+{
+}
 
 // 'Main program' equivalent: the program execution "starts" here
 bool MainApp::OnInit()
@@ -220,12 +238,6 @@ void MainApp::OnIdle()
         //cout << setw( 5 ) << fixed << setprecision( 3 ) << right << vtkTimerLog::GetCPUTime() << ": Tick" << endl;
     }
     m_pRenderWindowSP->Render();
-}
-
-string MainApp::GetCWD()
-{
-    return string();
-    //return wxGetCwd().mb_str();
 }
 
 string MainApp::GetResouceFolderPath()

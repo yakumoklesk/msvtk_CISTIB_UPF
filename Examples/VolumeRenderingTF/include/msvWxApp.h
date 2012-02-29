@@ -40,6 +40,7 @@ class msvWxApp : public wxApp, public msvAppBase
 {
 public:
     msvWxApp();
+    msvWxApp( int &argc, char **argv );
 
     virtual std::string GetCWD();
     virtual bool OnInit();

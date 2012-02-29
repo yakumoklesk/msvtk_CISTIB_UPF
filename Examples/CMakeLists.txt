@@ -26,21 +26,33 @@ cmake_minimum_required( VERSION 2.8.0 )
 # build, this is why I test if I am being included or not
 
 get_directory_property( LISTFILE_STACK_VALUE LISTFILE_STACK )
-#message( "LISTFILE_STACK_VALUE ${LISTFILE_STACK_VALUE}" )
+message( "LISTFILE_STACK_VALUE ${LISTFILE_STACK_VALUE}" )
+message( "CMAKE_PARENT_LIST_FILE ${CMAKE_PARENT_LIST_FILE}" )
+get_directory_property( PARENT_DIRECTORY_VALUE PARENT_DIRECTORY )
+message( "PARENT_DIRECTORY_VALUE ${PARENT_DIRECTORY_VALUE}" )
+
 list( LENGTH LISTFILE_STACK_VALUE NUMBER_OF_CURRENT_PROCESSING_FILES )
-if( NUMBER_OF_CURRENT_PROCESSING_FILES EQUAL 1 )
+#if( NUMBER_OF_CURRENT_PROCESSING_FILES EQUAL 1 )
+if( NOT PARENT_DIRECTORY_VALUE )
   list( GET LISTFILE_STACK_VALUE 0 CURRENT_PROCESSING_FILE )
   get_filename_component( CURRENT_PROCESSING_FILE_PATH ${CURRENT_PROCESSING_FILE} PATH )
-  #message( "CURRENT_PROCESSING_FILE ${CURRENT_PROCESSING_FILE}" )
-  #message( "CURRENT_PROCESSING_FILE_PATH ${CURRENT_PROCESSING_FILE_PATH}" )
+  message( "CURRENT_PROCESSING_FILE ${CURRENT_PROCESSING_FILE}" )
+  message( "CURRENT_PROCESSING_FILE_PATH ${CURRENT_PROCESSING_FILE_PATH}" )
   set( CMAKE_MODULE_PATH
     "${CURRENT_PROCESSING_FILE_PATH}/../CMake"
     ${CMAKE_MODULE_PATH}
   )
-  include( ${CURRENT_PROCESSING_FILE_PATH}/../CMake/Common.cmake )
+  message( "CMAKE_MODULE_PATH being set" )
+  # To import a module, you must not specify the extension
+  #include( ${CURRENT_PROCESSING_FILE_PATH}/../CMake/Common.cmake )
+  include( Common )
+  #message( "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}" )
+  set( Examples_STANDALONE_BUILD 1 )
 endif()
 
-project( Examples CXX )
+# Removed the CXX, or QT will fail on initialization (uses try_compile on c files)
+project( Examples )
+#project( Examples CXX )
 
 # Set some variables to substitute in config file
 set( Examples_VERSION_MAJOR 1 )
@@ -117,6 +129,15 @@ include( FindGTEST )
 if( GUI_API EQUAL GUI_API_WXWIDGETS )
   set( REQUIRED_WXWIDGETS_VERSION ${Examples_REQUIRED_WXWIDGETS_VERSION} )
   include( FindWXWIDGETS )
+elseif( GUI_API EQUAL GUI_API_QT )
+  set( REQUIRED_QT_VERSION ${Examples_REQUIRED_QT_VERSION} )
+  if( QT4_FOUND )
+    LOG_DEBUG( "QT4 FOUND!!!!!!!!!!" )
+  else()
+	include( msvMacroSetupQt )
+	msvMacroSetupQt()
+  endif()
+  
 endif()
 
 include_directories(
@@ -139,3 +160,45 @@ endif()
 set( Examples_BINARY_DIR "bin" )
 
 add_subdirectory( VolumeRenderingTF )
+add_subdirectory( PolyDataShaderMapper )
+add_subdirectory( ExampleSkeleton )
+
+
+if( NOT Examples_STANDALONE_BUILD )
+
+  project(msvExamples)
+
+  cmake_minimum_required(VERSION 2.8)
+  include_regular_expression("^.*$")
+
+  # -----------------------------------------------------------------------------
+  # Disable deprecation warnings for standard C and STL functions in VS2005 and
+  # later (no, we don't need IF(CMAKE_COMPILER_2005) ... )
+  # -----------------------------------------------------------------------------
+  IF(MSVC_VERSION EQUAL 1400 OR MSVC_VERSION GREATER 1400 OR MSVC10)
+    ADD_DEFINITIONS(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS)
+    ADD_DEFINITIONS(-D_SCL_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS)
+  ENDIF(MSVC_VERSION EQUAL 1400 OR MSVC_VERSION GREATER 1400 OR MSVC10)
+
+  IF(NOT MSVTK_BINARY_DIR)
+    find_package(MSVTK REQUIRED)
+    include(${MSVTK_USE_FILE})
+  ENDIF(NOT MSVTK_BINARY_DIR)
+
+  set(dirs
+  # FileWatcher
+    )
+
+  list(APPEND dirs
+    Time
+    )
+
+  #-----------------------------------------------------------------------------
+  # Loop over list of directories
+  #-----------------------------------------------------------------------------
+  foreach(dir ${dirs})
+    message(STATUS "Configuring examples: msv${dir}")
+    add_subdirectory(${dir})
+  endforeach()
+
+endif( NOT Examples_STANDALONE_BUILD )

@@ -74,8 +74,31 @@ set( SRCS_GUI_WX
   src/wxMiscToolsPanel.cxx
 )
 
-set( SRCS_GUI_QT
+if( GUI_API EQUAL GUI_API_QT )
+
+LOG_DEBUG( "Wrapping all the QT code" )
+
+
+set( SRCS_CXX_QT
+  src/msvQApp.cxx
 )
+
+set( SRCS_MOC_QT
+  include/msvQApp.h
+)
+
+set( SRCS_HEADERS_QT
+  ${SRCS_MOC_QT}
+)
+
+QT4_WRAP_CPP( SRCS_CXX_QT ${SRCS_MOC_QT} )
+
+set( SRCS_GUI_QT
+  ${SRCS_HEADERS_QT}
+  ${SRCS_CXX_QT}
+)
+
+endif()
 
 if( GUI_API EQUAL GUI_API_WXWIDGETS )
   set( SRCS_GUI ${SRCS_GUI_WX} )
@@ -109,23 +132,24 @@ set( SRCS_VolumeRenderingTF
   include/vtkTemporalDataSetTimeStepProvider.h
   src/vtkTemporalDataSetTimeStepProvider.cxx
   include/vtkThreadSafeRendererWrapper.h
-  src/vtkThreadSafeRendererWrapper.cxx
-  include/vtkThreadSafeRenderer.h
-  src/vtkThreadSafeRenderer.cxx
-  include/vtkThreadSafeRenderWindow.h
-  src/vtkThreadSafeRenderWindow.cxx
-  include/vtkThreadSafeRenderWindowInteractor.h
-  src/vtkThreadSafeRenderWindowInteractor.cxx
+  #src/vtkThreadSafeRendererWrapper.cxx
+  #include/vtkThreadSafeRenderer.h
+  #src/vtkThreadSafeRenderer.cxx
+  #include/vtkThreadSafeRenderWindow.h
+  #src/vtkThreadSafeRenderWindow.cxx
+  #include/vtkThreadSafeRenderWindowInteractor.h
+  #src/vtkThreadSafeRenderWindowInteractor.cxx
   #msvVolumeRenderFactory
   #msvGraphicsFactory
   )
 
 LOG_DEBUG( "COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE}" )
   
-add_executable( wxVolumeRenderingTF ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_VolumeRenderingTF} )
+add_executable( ${PROJECT_NAME} ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_VolumeRenderingTF} )
+target_link_libraries( ${PROJECT_NAME} ${QT_LIBRARIES} )
 
 install( TARGETS
-  wxVolumeRenderingTF
+  ${PROJECT_NAME}
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib/static

@@ -19,7 +19,6 @@
 ###########################################################################
 
 set(MSVTK_DEPENDENCIES VTK CTK)
-set( MSVTK_DEPENDENCIES VTK )
 
 #-----------------------------------------------------------------------------
 # WARNING - No change should be required after this comment
@@ -165,11 +164,6 @@ if(APPLE)
     -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT}
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
 endif()
-
-
-LOG_DEBUG( "MSVTK_BUILD_SHARED_LIBS ${MSVTK_BUILD_SHARED_LIBS}" )
-LOG_DEBUG( "CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}" )
-
 
 #-----------------------------------------------------------------------------
 # MSVTK Configure

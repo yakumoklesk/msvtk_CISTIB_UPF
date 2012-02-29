@@ -69,7 +69,8 @@ set(proj VTK)
 if(NOT DEFINED VTK_DIR)
 
   #set(revision_tag "v5.8.0")
-  set(revision_tag fea2d622cf01dfd22f727330dbace97d4af892db)
+  #set(revision_tag fea2d622cf01dfd22f727330dbace97d4af892db)
+  set(revision_tag ad3fda67d01a3a58c715474ad81803ecb3d3ce1c)
   if(${proj}_REVISION_TAG)
     set(revision_tag ${${proj}_REVISION_TAG})
   endif()
@@ -102,6 +103,7 @@ if(NOT DEFINED VTK_DIR)
       ${CMAKE_OSX_EXTERNAL_PROJECT_ARGS}
       -DBUILD_TESTING:BOOL=OFF
       ${additional_vtk_cmakevars}
+      -DVTK_DEBUG_LEAKS=ON
       -DVTK_WRAP_TCL:BOOL=OFF
       -DVTK_USE_TK:BOOL=OFF
       -DVTK_WRAP_PYTHON:BOOL=${MSVTK_LIB_Scripting/Python/Core_PYTHONQT_USE_VTK}
@@ -111,7 +113,10 @@ if(NOT DEFINED VTK_DIR)
       -DVTK_USE_GUISUPPORT:BOOL=ON
       -DVTK_USE_QVTK_QTOPENGL:BOOL=ON
       -DVTK_USE_QT:BOOL=ON
+      -DVTK_LEGACY_REMOVE:BOOL=ON
       -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+      -DLIBRARY_OUTPUT_PATH:STRING=${MSVTK_BINARY_DIR}/MSVTK-build/bin
+      -DEXECUTABLE_OUTPUT_PATH:STRING=${MSVTK_BINARY_DIR}/MSVTK-build/bin
     DEPENDS
       ${VTK_DEPENDENCIES}
     )

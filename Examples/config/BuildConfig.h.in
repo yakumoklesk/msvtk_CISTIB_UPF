@@ -28,16 +28,21 @@
 #define BUILD_FROM_HOME 1
 
 // GUI API used definitions
-#define GUI_API_NONE        @GUI_API_NONE_CONFIG@
-#define GUI_API_QT          @GUI_API_QT_CONFIG@
-#define GUI_API_WXWIDGETS   @GUI_API_WXWIDGETS_CONFIG@
+#define GUI_API_NONE                            @GUI_API_NONE_CONFIG@
+#define GUI_API_QT                              @GUI_API_QT_CONFIG@
+#define GUI_API_WXWIDGETS                       @GUI_API_WXWIDGETS_CONFIG@
+
+#define APPLICATION_EXECUTABLE_TYPE_CONSOLE     @APPLICATION_EXECUTABLE_TYPE_CONSOLE_CONFIG@
+#define APPLICATION_EXECUTABLE_TYPE_GUI         @APPLICATION_EXECUTABLE_TYPE_GUI_CONFIG@
+
 
 // Automatically configured values
-#define GUI_API             @GUI_API_CONFIG@
-#define BUILD_LOCATION      @Build_Location_CONFIG@
+#define GUI_API                                 @GUI_API_CONFIG@
+#define APPLICATION_EXECUTABLE_TYPE             @APPLICATION_EXECUTABLE_TYPE_CONFIG@
+#define BUILD_LOCATION                          @Build_Location_CONFIG@
 
-#define USE_WXVTK           @USE_WXVTK_CONFIG@
+#define USE_WXVTK                               @USE_WXVTK_CONFIG@
 
-#define Examples_VERSION_MAJOR @Examples_VERSION_MAJOR@
-#define Examples_VERSION_MINOR @Examples_VERSION_MINOR@
+#define Examples_VERSION_MAJOR                  @Examples_VERSION_MAJOR@
+#define Examples_VERSION_MINOR                  @Examples_VERSION_MINOR@
 

@@ -30,6 +30,10 @@ msvWxApp::msvWxApp()
 {
 }
 
+msvWxApp::msvWxApp( int &argc, char **argv )
+{
+}
+
 /*
 int MainAppWx::OnRun()
 {

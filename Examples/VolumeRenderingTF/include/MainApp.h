@@ -24,6 +24,7 @@
 
 #include "BuildConfig.h"
 #include "msvApp.h"
+#include "vtkExtTypes.h"
 
 #include <vector>
 
@@ -47,13 +48,13 @@ class MainApp: public msvApp
 {
 public:
     MainApp();
+    MainApp( int &argc, char **argv );
 
     // this one is called on application startup and is a good place for the app
     // initialization (doing it here and not in the ctor allows to have an error
     // return: if OnInit() returns false, the application terminates)
     virtual bool OnInit();
     virtual int OnExit();
-    virtual std::string GetCWD();
     std::string GetResouceFolderPath();
     virtual void OnIdle();
 
@@ -75,20 +76,20 @@ protected:
     vtkThreadSafeRenderWindow*              m_pRenderWindowSP;
     vtkThreadSafeRenderWindowInteractor*    m_RenderWindowInteractorSP;
 #else
-    vtkRendererSP                   m_pRendererSP;
-    vtkRenderWindowSP               m_pRenderWindowSP;
-    vtkRenderWindowInteractorSP     m_RenderWindowInteractorSP;
+    vtkRendererSP                           m_pRendererSP;
+    vtkRenderWindowSP                       m_pRenderWindowSP;
+    vtkRenderWindowInteractorSP             m_RenderWindowInteractorSP;
 #endif
     
 
-    msvEntityMgr*                   m_pmsvEntityMgr;
-    msvObjectFactory*               m_pmsvObjectFactory;
+    msvEntityMgr*                           m_pmsvEntityMgr;
+    msvObjectFactory*                       m_pmsvObjectFactory;
 
-    vtkSmartPointer<vtkPolyData>    m_PolyDataSP;
-    vtkSmartPointer<vtkPolyDataMapper>    m_PolyDataMapperSP;
-    vtkSmartPointer<vtkActor>       m_PolyDataActorSP;
-    vtkSmartPointer<msvEntity>      m_EntitySP;
-    vtkSmartPointer<msvEntity>      m_EntityPolyDataSP;
+    vtkSmartPointer<vtkPolyData>            m_PolyDataSP;
+    vtkSmartPointer<vtkPolyDataMapper>      m_PolyDataMapperSP;
+    vtkSmartPointer<vtkActor>               m_PolyDataActorSP;
+    vtkSmartPointer<msvEntity>              m_EntitySP;
+    vtkSmartPointer<msvEntity>              m_EntityPolyDataSP;
 
 
 
@@ -111,8 +112,6 @@ protected:
     //ActorAnimator*                  m_SphereAnimator;
     //ActorAnimator*                  m_ConeAnimator;
 private:
-
-    ExitCommand*                    m_ExitCommand;
 };
 
 

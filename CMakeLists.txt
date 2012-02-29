@@ -18,104 +18,232 @@
 #
 ###########################################################################
 
-#set( ${PROJECT_NAME}_LIBRARY_DIR ${MSVTK_CISTIB_UPF_BINARY_DIR}/lib )
-#set( ${PROJECT_NAME}_EXECUTABLE_DIR ${MSVTK_CISTIB_UPF_BINARY_DIR}/bin )
-#set( PARENT_PROJECT_LIBRARY_DIR ${${PROJECT_NAME}_LIBRARY_DIR} )
-#set( PARENT_PROJECT_EXECUTABLE_DIR ${${PROJECT_NAME}_EXECUTABLE_DIR} )
+cmake_minimum_required(VERSION 2.8.2)
 
-# Require CMake 2.8 or higher.
-cmake_minimum_required( VERSION 2.8.0 )
-
-project( MSVTK )
-
-include( CMake/Common.cmake )
-
-
-# Set the possible GUI API
-set( MSVTK_REQUIRED_GUI_API WXWIDGETS CACHE STRING "Set the desired GUI API to be used for examples" )
-set_property( CACHE MSVTK_REQUIRED_GUI_API PROPERTY STRINGS NONE QT WXWIDGETS )
-# Set the possible versions of VTK
-set( MSVTK_REQUIRED_VTK_VERSION 5.6.1 CACHE STRING "Set the required version of VTK to be used for the examples." )
-set_property( CACHE MSVTK_REQUIRED_VTK_VERSION PROPERTY STRINGS 5.6.1 5.8.0 REPOSITORY )
-# Set the possible versions of GTEST
-set( MSVTK_REQUIRED_GTEST_VERSION 1.6.0 CACHE STRING "Set the required version of GTEST to be used for the examples." )
-set_property( CACHE MSVTK_REQUIRED_GTEST_VERSION PROPERTY STRINGS 1.6.0 )
-
-# Choose GUI API
-set( GUI_API_NONE_CONFIG 0 )
-set( GUI_API_QT_CONFIG 1 )
-set( GUI_API_WXWIDGETS_CONFIG 2 )
-
-set( GUI_API_NONE ${GUI_API_NONE_CONFIG} )
-set( GUI_API_QT ${GUI_API_QT_CONFIG} )
-set( GUI_API_WXWIDGETS ${GUI_API_WXWIDGETS_CONFIG} )
-
-if( MSVTK_REQUIRED_GUI_API STREQUAL NONE )
-  # Unset other GUI API
-  unset( MSVTK_REQUIRED_WXWIDGETS_VERSION CACHE )
-  unset( MSVTK_REQUIRED_QT_VERSION CACHE )
-  set( GUI_API_CONFIG ${GUI_API_NONE} )
-elseif( MSVTK_REQUIRED_GUI_API STREQUAL QT )
-  # Unset other GUI API
-  unset( MSVTK_REQUIRED_WXWIDGETS_VERSION CACHE )
-  # Set the possible versions of QT
-  set( MSVTK_REQUIRED_QT_VERSION 4.7.0 CACHE STRING "Set the required version of Qt to be used for the examples." )
-  set_property( CACHE MSVTK_REQUIRED_QT_VERSION PROPERTY STRINGS 4.7.0 )
-  # Set the configured value
-  set( GUI_API_CONFIG ${GUI_API_QT} )
-elseif( MSVTK_REQUIRED_GUI_API STREQUAL WXWIDGETS )
-  # Unset other GUI API
-  unset( MSVTK_REQUIRED_QT_VERSION CACHE )
-  # Set the possible versions of WXWIDGETS
-  set( MSVTK_REQUIRED_WXWIDGETS_VERSION 2.8.10 CACHE STRING "Set the required version of wxWidgets to be used for the examples." )
-  set_property( CACHE MSVTK_REQUIRED_WXWIDGETS_VERSION PROPERTY STRINGS 2.8.10 )
-  # Set the configured value
-  set( GUI_API_CONFIG ${GUI_API_WXWIDGETS} )
+#-----------------------------------------------------------------------------
+# See http://cmake.org/cmake/help/cmake-2-8-docs.html#section_Policies for details
+#-----------------------------------------------------------------------------
+if(POLICY CMP0016)
+  cmake_policy(SET CMP0016 NEW)
+endif()
+if(POLICY CMP0017)
+  cmake_policy(SET CMP0017 OLD)
 endif()
 
-set( GUI_API ${GUI_API_CONFIG} )
-set( USE_WXVTK_CONFIG 0 )
+#-----------------------------------------------------------------------------
+project(MSVTK)
+#-----------------------------------------------------------------------------
 
-#define GUI_API_QT 0
-#define GUI_API_WXWIDGETS 1
+#-----------------------------------------------------------------------------
+# Library mode: SHARED (default) or STATIC
+#
+set(MSVTK_LIBRARY_MODE "SHARED")
 
-# Setting configuration file source and destination
-#configure_file(
-#  "${PROJECT_SOURCE_DIR}/config/BuildConfig.h.in"
-#  "${PROJECT_BINARY_DIR}/BuildConfig.h"
-#  )
+option(BUILD_SHARED_LIBS "Build MSVTK with shared libraries." ON)
+set(MSVTK_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+mark_as_advanced(BUILD_SHARED_LIBS)
 
-# Add some global options
-option( MSVTK_BUILD_SHARED_LIBS "" ON )
+#-----------------------------------------------------------------------------
+# Set a default build type if none was specified
+#
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Debug' as none was specified.")
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
 
-
-# Add some VTK options
-option( MSVTK_VTK_DEBUG_LEAKS "" ON )
-option( MSVTK_VTK_LEGACY_REMOVE "" ON )
-set( MSVTK_VTK_BUILD_OPTIONS )
-list( APPEND MSVTK_VTK_BUILD_OPTIONS -DVTK_DEBUG_LEAKS:BOOL=${MSVTK_VTK_DEBUG_LEAKS} )
-list( APPEND MSVTK_VTK_BUILD_OPTIONS -DVTK_LEGACY_REMOVE:BOOL=${MSVTK_VTK_LEGACY_REMOVE} )
-
-LOG_DEBUG( "MSVTK_VTK_BUILD_OPTIONS ${MSVTK_VTK_BUILD_OPTIONS}" )
+#-----------------------------------------------------------------------------
+# Some settings to integrate UPF work
+include( UPFExtras.cmake )
 
 #-----------------------------------------------------------------------------
 # Superbuild Option - Enabled by default
-#-
+#
 option(MSVTK_SUPERBUILD "Build MSVTK and the projects it depends on via SuperBuild.cmake." ON)
-mark_as_advanced( MSVTK_SUPERBUILD )
+mark_as_advanced(MSVTK_SUPERBUILD)
 
-#---------------------------------------------------------------------------
-# Will contain a list of sub-directory without option ON or OFF
-#-
-set( MSVTK_PLUGINS_SUBDIRS )
-set( MSVTK_APPLICATIONS_SUBDIRS )
-set( MSVTK_EXAMPLE_SUBDIRS )
+#-----------------------------------------------------------------------------
+# Output directories.
+#
+foreach(type LIBRARY RUNTIME ARCHIVE)
+  # Make sure the directory exists
+  if(DEFINED MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY
+     AND NOT EXISTS ${MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY})
+    message(FATAL_ERROR "MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY is set to a non-existing directory [${MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY}]")
+  endif()
 
-#option( MSVTK_APP_ECG "ECG application to demonstrate vtkButtons" ON )
-#list( APPEND MSVTK_APPLICATIONS_SUBDIRS Examples )
+  if(MSVTK_SUPERBUILD)
+    set(output_dir ${MSVTK_BINARY_DIR}/bin)
+    if(NOT DEFINED MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY)
+      set(MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY ${MSVTK_BINARY_DIR}/MSVTK-build/bin)
+    endif()
+  else()
+    if(NOT DEFINED MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY)
+      set(output_dir ${MSVTK_BINARY_DIR}/bin)
+    else()
+      set(output_dir ${MSVTK_CMAKE_${type}_OUTPUT_DIRECTORY})
+    endif()
+  endif()
+  set(CMAKE_${type}_OUTPUT_DIRECTORY ${output_dir} CACHE INTERNAL "Single output directory for building all libraries.")
+endforeach()
 
-option( MSVTK_EXAMPLE_VolumeRenderingTF "VolumeRenderingTF example" ON )
-list( APPEND MSVTK_EXAMPLES_SUBDIRS VolumeRenderingTF )
+#-----------------------------------------------------------------------------
+# MSVTK version number.  An even minor number corresponds to releases.
+#
+set(MSVTK_MAJOR_VERSION 0)
+set(MSVTK_MINOR_VERSION 1)
+set(MSVTK_BUILD_VERSION 0)
+set(MSVTK_VERSION
+    "${MSVTK_MAJOR_VERSION}.${MSVTK_MINOR_VERSION}.${MSVTK_BUILD_VERSION}")
+
+# TODO Rename MSVTK_VERSION into MSVTK_VERSION_STR  -  MSVTK_VERSION should be hexadecimal one
+
+# Append the library version information to the library target
+# properties.  A parent project may set its own properties and/or may
+# block this.
+if(NOT MSVTK_NO_LIBRARY_VERSION)
+  set(MSVTK_LIBRARY_PROPERTIES ${MSVTK_LIBRARY_PROPERTIES}
+    VERSION "${MSVTK_VERSION}"
+    SOVERSION "${MSVTK_MAJOR_VERSION}.${MSVTK_MINOR_VERSION}"
+    )
+endif()
+
+#-----------------------------------------------------------------------------
+# Install directories, used for install rules.
+#
+# TODO Rename with SUBDIR suffix
+if(NOT MSVTK_INSTALL_BIN_DIR)
+  set(MSVTK_INSTALL_BIN_DIR "bin")
+endif()
+if(NOT MSVTK_INSTALL_LIB_DIR)
+  set(MSVTK_INSTALL_LIB_DIR "lib/MSVTK-${MSVTK_MAJOR_VERSION}.${MSVTK_MINOR_VERSION}")
+endif()
+if(NOT MSVTK_INSTALL_INCLUDE_DIR)
+  set(MSVTK_INSTALL_INCLUDE_DIR "include/MSVTK-${MSVTK_MAJOR_VERSION}.${MSVTK_MINOR_VERSION}")
+endif()
+if(NOT MSVTK_INSTALL_DOC_DIR)
+  set(MSVTK_INSTALL_DOC_DIR "doc")
+endif()
+
+#-----------------------------------------------------------------------------
+# Update CMake module path
+# Note: FindXXX.cmake script specific to utility should be copied into Utilities/CMake
+#
+set(CMAKE_MODULE_PATH
+  "${CMAKE_CURRENT_SOURCE_DIR}/Utilities/CMake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/CMake"
+  ${CMAKE_MODULE_PATH})
+
+#-----------------------------------------------------------------------------
+# Clear MSVTK_BASE_INCLUDE_DIRS, MSVTK_BASE_LIBRARIES and MSVTK_WRAPPED_LIBRARIES_PYTHONQT
+#
+#set(MSVTK_BASE_LIBRARIES CACHE INTERNAL "MSVTK base libraries" FORCE)
+#set(MSVTK_BASE_INCLUDE_DIRS CACHE INTERNAL "MSVTK includes" FORCE)
+# TODO Shouldn't be required .. was added to CTK before we rely on exported target
+
+# Variable use in MSVTKConfig.cmake.in
+set(MSVTK_LIBRARIES CACHE INTERNAL "MSVTK libraries" FORCE)
+set(MSVTK_PLUGIN_LIBRARIES CACHE INTERNAL "MSVTK plugins" FORCE)
+
+# Used by MSVTKGenerateMSVTKConfig.cmake and also used to reference script from other scripts
+set(MSVTK_CMAKE_DIR ${MSVTK_SOURCE_DIR}/CMake)
+set(MSVTK_CMAKE_UTILITIES_DIR ${MSVTK_SOURCE_DIR}/Utilities/CMake)
+
+#-----------------------------------------------------------------------------
+# CMake Function(s) and Macro(s)
+#
+#include(CMake/MSVTKMacroParseArguments.cmake)
+#include(CMake/MSVTKMacroSetPaths.cmake)
+#include(CMake/MSVTKMacroListFilter.cmake)
+#include(CMake/MSVTKMacroBuildLib.cmake)
+#include(CMake/MSVTKMacroBuildLibWrapper.cmake)
+#include(CMake/MSVTKMacroBuildPlugin.cmake)
+#include(CMake/MSVTKMacroBuildApp.cmake)
+#include(CMake/MSVTKMacroCompilePythonScript.cmake)
+#include(CMake/MSVTKMacroWrapPythonQt.cmake)
+#include(CMake/MSVTKMacroSetupQt.cmake)
+#include(CMake/MSVTKMacroTargetLibraries.cmake) # Import multiple macros
+#include(CMake/MSVTKFunctionExtractOptionNameAndValue.cmake)
+#include(CMake/MSVTKMacroValidateBuildOptions.cmake)
+#include(CMake/MSVTKMacroAddMSVTKLibraryOptions.cmake)
+#include(CMake/MSVTKFunctionGenerateDGraphInput.cmake)
+#include(CMake/MSVTKFunctionGenerateProjectXml.cmake)
+#include(CMake/MSVTKFunctionGeneratePluginManifest.cmake)
+#include(CMake/MSVTKMacroGeneratePluginResourceFile.cmake)
+#include(CMake/MSVTKFunctionCheckCompilerFlags.cmake)
+#include(CMake/MSVTKFunctionGetIncludeDirs.cmake)
+#include(CMake/MSVTKFunctionGetLibraryDirs.cmake)
+#include(CMake/MSVTKFunctionGetGccVersion.cmake)
+
+#-----------------------------------------------------------------------------
+# Qt Designer Plugins
+
+option(BUILD_QTDESIGNER_PLUGINS "Build Qt Designer plugins" OFF)
+if(BUILD_QTDESIGNER_PLUGINS)
+  include(CMake/MSVTKMacroBuildQtDesignerPlugin.cmake)
+endif()
+
+#-----------------------------------------------------------------------------
+# Testing
+#
+option(BUILD_TESTING "Test the project" ON)
+if(BUILD_TESTING)
+  enable_testing()
+  include(CTest)
+  set(CPP_TEST_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+  # DashBoard
+  configure_file(
+    ${MSVTK_SOURCE_DIR}/CTestConfig.cmake
+    ${MSVTK_BINARY_DIR}/CTestConfig.cmake
+    COPYONLY)
+
+  # Setup file for setting custom ctest vars
+  CONFIGURE_FILE(
+    CMake/CTestCustom.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake
+    @ONLY
+    )
+
+  # Configuration for the CMake-generated test driver
+  set(CMAKE_TESTDRIVER_EXTRA_INCLUDES "
+#include <stdexcept>
+#if defined(WIN32)
+#  pragma warning(disable : 4996)
+#endif")
+  set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN "
+  try
+    {")
+  set(CMAKE_TESTDRIVER_AFTER_TESTMAIN "
+    }
+  catch( std::exception & excp )
+    {
+    fprintf(stderr, \"Test driver caught exception: [%s]\\n\", excp.what());
+    return EXIT_FAILURE;
+    }
+  catch( ... )
+    {
+    printf(\"Exception caught by the test driver\\n\");
+    return EXIT_FAILURE;
+    }")
+endif()
+
+#-----------------------------------------------------------------------------
+# Documentation
+#
+option(DOCUMENTATION_TARGET_IN_ALL "Include the custom target for building documentation in 'all'" OFF)
+mark_as_advanced(DOCUMENTATION_TARGET_IN_ALL)
+
+set(DOCUMENTATION_ARCHIVES_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+ CACHE PATH "Where documentation archives should be stored")
+mark_as_advanced(DOCUMENTATION_ARCHIVES_OUTPUT_DIRECTORY)
+
+#-----------------------------------------------------------------------------
+# Attempt to discover Doxygen so that DOXYGEN_EXECUTABLE is set to an appropriate default value
+#
+FIND_PACKAGE(Doxygen QUIET)
 
 #-----------------------------------------------------------------------------
 # Coverage
@@ -184,30 +312,95 @@ if(MSVC)
   set(MSVTK_CXX_FLAGS "${MSVTK_CXX_FLAGS} ${msvc_suppressed_warnings}")
 endif()
 
+add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+
 #-----------------------------------------------------------------------------
 # QT
-#-
-include( msvMacroSetupQt )
-#msvMacroSetupQt()
+#
+include(CMake/msvMacroSetupQt.cmake)
+msvMacroSetupQt()
+
+# Update MSVTK_BASE_LIBRARIES with QT libraries
+#if(QT4_FOUND)
+#  set(MSVTK_BASE_LIBRARIES ${MSVTK_BASE_LIBRARIES} ${QT_LIBRARIES} CACHE INTERNAL "MSVTK base libraries" FORCE)
+#endif()
+
+#-----------------------------------------------------------------------------
+# MSVTK Libraries - Use ON or OFF to indicate if the library should be built by default
+#
+#set(MSVTK_LIBS
+#  Core:ON
+#  Widgets:ON
+#  )
+
+#-----------------------------------------------------------------------------
+# MSVTK Plugins - Use ON or OFF to indicate if the plugin should be built by default
+#
+#set(MSVTK_PLUGINS
+#  )
+
+#-----------------------------------------------------------------------------
+# MSVTK Applications - Use ON or OFF to indicate if the application should be built by default
+#
+#set(MSVTK_APPLICATIONS
+#  )
+
+#-----------------------------------------------------------------------------
+# To make options show up in both MSVTK-SuperBuild and MSVTK regular build, let's add them
+# before the SuperBuild script is included
+#
+
+# Let's mark as advanced some default properties
+mark_as_advanced(CMAKE_INSTALL_PREFIX)
+mark_as_advanced(DART_TESTING_TIMEOUT)
+
+# KWStyle
+option(MSVTK_USE_KWSTYLE     "Enable sourcecode-based style tests." OFF)
+#mark_as_advanced(MSVTK_USE_KWSTYLE)
+
+#---------------------------------------------------------------------------
+# Will contain a list of sub-directory without option ON or OFF
+#
+set(MSVTK_PLUGINS_SUBDIRS )
+set(MSVTK_APPLICATIONS_SUBDIRS )
+set( MSVTK_EXAMPLE_SUBDIRS )
+
+option(MSVTK_APP_ECG "ECG application to demonstrate vtkButtons" ON)
+list(APPEND MSVTK_APPLICATIONS_SUBDIRS ECG)
+
+option( MSVTK_EXAMPLE_VolumeRenderingTF "VolumeRenderingTF example" ON )
+list( APPEND MSVTK_EXAMPLES_SUBDIRS VolumeRenderingTF )
+
+
+#-----------------------------------------------------------------------------
+# Prerequisites
+#-----------------------------------------------------------------------------
+find_package(Git)
+if(NOT GIT_FOUND)
+  message(FATAL_ERROR "error: Install Git and try to re-configure")
+endif()
 
 #-----------------------------------------------------------------------------
 # Superbuild script
-#-
-if( MSVTK_SUPERBUILD )
-  add_subdirectory( "${CMAKE_CURRENT_SOURCE_DIR}/CMake/SuperBuild" )
+#
+
+if(MSVTK_SUPERBUILD)
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/CMake/SuperBuild")
   return()
 endif()
 
 #-----------------------------------------------------------------------------
-# Set C/CXX Flags
-#
-set(CMAKE_CXX_FLAGS ${MSVTK_CXX_FLAGS} CACHE STRING "CMake C Flags" FORCE)
-set(CMAKE_C_FLAGS ${MSVTK_C_FLAGS} CACHE STRING "CMake CXX Flags" FORCE)
-
-
+# VTK
+#-----------------------------------------------------------------------------
 # VTK_DIR should be set by Superbuild
 if( VTK_DIR )
   find_package( VTK REQUIRED )
+  if(NOT VTK_USE_QVTK)
+    message(FATAL_ERROR "error: VTK was not configured to use QT, you probably need "
+                        "to recompile it with VTK_USE_GUISUPPORT ON, VTK_USE_QVTK ON, "
+                        "DESIRED_QT_VERSION 4 and QT_QMAKE_EXECUTABLE set appropriatly. "
+                        "Note that Qt >= ${Slicer_REQUIRED_QT_VERSION} is *required*")
+  endif()
 else()
   if( MSVTK_REQUIRED_VTK_VERSION STREQUAL REPOSITORY )
     include( DownloadVTK )
@@ -217,13 +410,26 @@ else()
   endif()
 endif()
 
+#-----------------------------------------------------------------------------
+# GTEST
+#-----------------------------------------------------------------------------
 #set( REQUIRED_GTEST_VERSION ${MSVTK_REQUIRED_GTEST_VERSION} )
 #include( FindGTEST )
 
+#-----------------------------------------------------------------------------
+# WXWIDGETS
+#-----------------------------------------------------------------------------
 if( GUI_API EQUAL GUI_API_WXWIDGETS )
   set( REQUIRED_WXWIDGETS_VERSION ${MSVTK_REQUIRED_WXWIDGETS_VERSION} )
   include( FindWXWIDGETS )
 endif()
+include(${VTK_USE_FILE})
+
+#-----------------------------------------------------------------------------
+# CTK
+#-----------------------------------------------------------------------------
+find_package(CTK REQUIRED)
+include(${CTK_USE_FILE})
 
 #-----------------------------------------------------------------------------
 # MSVTK_SUPERBUILD_BINARY_DIR
@@ -235,59 +441,67 @@ if(NOT DEFINED MSVTK_SUPERBUILD_BINARY_DIR)
 endif()
 
 #-----------------------------------------------------------------------------
+# Configure files with settings
+#
+
+#CONFIGURE_FILE(${MSVTK_SOURCE_DIR}/UseMSVTK.cmake.in
+#              ${MSVTK_SUPERBUILD_BINARY_DIR}/UseMSVTK.cmake COPYONLY IMMEDIATE)
+
+#-----------------------------------------------------------------------------
 # Set C/CXX Flags
-#-
+#
 set(CMAKE_CXX_FLAGS ${MSVTK_CXX_FLAGS} CACHE STRING "CMake C Flags" FORCE)
 set(CMAKE_C_FLAGS ${MSVTK_C_FLAGS} CACHE STRING "CMake CXX Flags" FORCE)
 
 #-----------------------------------------------------------------------------
 # Set the header template which defines custom export/import macros
 # for shared libraries
-#-
+#
 set(MSVTK_EXPORT_HEADER_TEMPLATE "${MSVTK_SOURCE_DIR}/Libs/msvExport.h.in")
 
 #-----------------------------------------------------------------------------
 # Add MSVTK library subdirectories
-#-
-#add_subdirectory( Libs )
+#
+add_subdirectory(Libs)
 
 #-----------------------------------------------------------------------------
 # Add MSVTK plugin subdirectories
-#-
-foreach( plugin ${MSVTK_PLUGINS_SUBDIRS} )
-  if( MSVTK_PLUGIN_${plugin} )
-    add_subdirectory( Plugins/${plugin} )
+#
+foreach(plugin ${MSVTK_PLUGINS_SUBDIRS})
+  if(MSVTK_PLUGIN_${plugin})
+    add_subdirectory(Plugins/${plugin})
   endif()
 endforeach()
 
 #-----------------------------------------------------------------------------
 # Add MSVTK application subdirectories
-#-
-foreach( app ${MSVTK_APPLICATIONS_SUBDIRS} )
-  if( MSVTK_APP_${app} )
-    add_subdirectory( Applications/${app} )
+#
+foreach(app ${MSVTK_APPLICATIONS_SUBDIRS})
+  IF (MSVTK_APP_${app})
+    add_subdirectory(Applications/${app})
   endif()
 endforeach()
 
 #-----------------------------------------------------------------------------
 # Add MSVTK examples subdirectories
-#-
-foreach( app ${MSVTK_EXAMPLES_SUBDIRS} )
-  if( MSVTK_EXAMPLE_${app} )
-    add_subdirectory( Examples/${app} )
-  endif()
-endforeach()
-
-
+#
+#foreach( app ${MSVTK_EXAMPLES_SUBDIRS} )
+#  if( MSVTK_EXAMPLE_${app} )
+#    add_subdirectory( Examples/${app} )
+#  endif()
+#endforeach()
+get_directory_property( LISTFILE_STACK_VALUE LISTFILE_STACK )
+message( "LISTFILE_STACK_VALUE ${LISTFILE_STACK_VALUE}" )
+add_subdirectory(Examples)
 
 #-----------------------------------------------------------------------------
 # Style Checking configuration
-#-
-#if( MSVTK_USE_KWSTYLE )
-#  include( Utilities/KWStyle/KWStyle.cmake )
-#endif()
+#
+if(MSVTK_USE_KWSTYLE)
+  include(Utilities/KWStyle/KWStyle.cmake)
+endif()
 
 #---------------------------------------------------------------------------
 # Documentation
-#-
-#add_subdirectory( Utilities/Documentation )
+#
+add_subdirectory( Utilities/Documentation )
