@@ -106,7 +106,7 @@ elseif( GUI_API EQUAL GUI_API_QT )
   set( SRCS_GUI ${SRCS_GUI_QT} )
 endif()
 
-set( SRCS_VolumeRenderingTF
+set( SRCS_${PROJECT_NAME}
   ${SRCS_Common}
   #../src/wxVTKRenderWindowInteractor.cxx
   include/msvApp.h
@@ -145,7 +145,7 @@ set( SRCS_VolumeRenderingTF
 
 LOG_DEBUG( "COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE}" )
   
-add_executable( ${PROJECT_NAME} ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_VolumeRenderingTF} )
+add_executable( ${PROJECT_NAME} ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_${PROJECT_NAME}} )
 target_link_libraries( ${PROJECT_NAME} ${QT_LIBRARIES} )
 
 install( TARGETS

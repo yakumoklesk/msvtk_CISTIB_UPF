@@ -160,7 +160,7 @@ endif()
 set( Examples_BINARY_DIR "bin" )
 
 add_subdirectory( VolumeRenderingTF )
-add_subdirectory( PolyDataShaderMapper )
+add_subdirectory( GPUPolyDataMapper )
 add_subdirectory( ExampleSkeleton )
 
 
