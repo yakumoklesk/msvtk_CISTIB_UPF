@@ -154,5 +154,6 @@ string MainApp::GetResouceFolderPath()
 
 void MainApp::CreateSceneData()
 {
+
 }
 

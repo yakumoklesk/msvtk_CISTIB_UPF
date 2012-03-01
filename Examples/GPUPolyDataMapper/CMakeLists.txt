@@ -18,7 +18,7 @@
 #
 ###########################################################################
 
-project( PolyDataShader CXX )
+project( GPUPolyDataMapper CXX )
 
 # Should not be configured if already configured in Examples/CMakeLists.txt
 # Setting configuration file source and destination
@@ -50,6 +50,8 @@ include_directories(
   )
 
 set( SRCS_GUI_WX
+  include/msvWxApp.h
+  src/msvWxApp.cxx
 )
 
 if( GUI_API EQUAL GUI_API_QT )
@@ -84,7 +86,7 @@ elseif( GUI_API EQUAL GUI_API_QT )
   set( SRCS_GUI ${SRCS_GUI_QT} )
 endif()
 
-set( SRCS_VolumeRenderingTF
+set( SRCS_${PROJECT_NAME}
   ${SRCS_Common}
   #../src/wxVTKRenderWindowInteractor.cxx
   include/msvApp.h
@@ -94,11 +96,13 @@ set( SRCS_VolumeRenderingTF
   ${SRCS_GUI}
   include/msvObjectFactory.h
   src/msvObjectFactory.cxx
+  include/vtkGPUPolyDataMapper.h
+  src/vtkGPUPolyDataMapper.cxx
   )
 
 LOG_DEBUG( "COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE}" )
   
-add_executable( ${PROJECT_NAME} ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_VolumeRenderingTF} )
+add_executable( ${PROJECT_NAME} ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE} ${SRCS_${PROJECT_NAME}} )
 target_link_libraries( ${PROJECT_NAME} ${QT_LIBRARIES} )
 
 install( TARGETS
