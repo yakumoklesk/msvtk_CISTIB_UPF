@@ -24,6 +24,7 @@
 #include <vtkVersion.h>
 #include <vtkGraphicsFactory.h>
 //#include <vtkGPUVolumeRayCastMapper.h>
+#include <vtkPainterGPUPolyDataMapper.h>
 
 
 // Win32 specific stuff
@@ -74,26 +75,35 @@ vtkObject* msvObjectFactory::msvObjectFactoryCreatemsvRTRenderWindowInteractor()
     return 0;
 }
 
-vtkObject* msvObjectFactory::CreateObject( const char* className )
+vtkObject* msvObjectFactory::CreateObject( const char* vtkclassname )
 {
     const char *rl = vtkGraphicsFactory::GetRenderLibrary();
 #ifdef VTK_DISPLAY_WIN32_OGL
     if ( !vtkGraphicsFactory::GetOffScreenOnlyMode() )
     {
-        if(strcmp( className, "vtkRenderWindowInteractor") == 0)
+        if(strcmp( vtkclassname, "vtkRenderWindowInteractor") == 0)
         {
             //return msvVTKRTRenderWindowInteractor::New();
         }
     }
     if (!strcmp("Win32OpenGL",rl))
     {
-        if(strcmp( className, "vtkRenderWindow") == 0)
+        if(strcmp( vtkclassname, "vtkRenderWindow") == 0)
         {
             return vtkWin32OpenGLRenderWindow::New();
         }
     }
 #endif
 
+#if defined(VTK_USE_OGLR) || defined(VTK_USE_OSMESA) || defined(_WIN32) || defined(VTK_USE_COCOA) || defined(VTK_USE_CARBON)
+    if (!strcmp("OpenGL",rl) || !strcmp("Win32OpenGL",rl) || !strcmp("CarbonOpenGL",rl) || !strcmp("CocoaOpenGL",rl))
+    {
+        if(strcmp(vtkclassname, "vtkGPUPolyDataMapper") == 0)
+        {
+            return vtkPainterGPUPolyDataMapper::New();
+        }
+    }
+#endif  //#if defined(VTK_USE_OGLR) || defined(VTK_USE_OSMESA) || defined(_WIN32) || defined(VTK_USE_COCOA) || defined(VTK_USE_CARBON)
     return NULL;
 }
 

@@ -27,9 +27,14 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 
+#include <vtkPolyDataReader.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataMapper.h>
+
 #include <vtkCommand.h>
 
 #include "msvObjectFactory.h"
+#include "vtkGPUPolyDataMapper.h"
 
 #include <string>
 #include <ios>
@@ -154,6 +159,29 @@ string MainApp::GetResouceFolderPath()
 
 void MainApp::CreateSceneData()
 {
+    string resFolder = GetResouceFolderPath();
+    string Sample = resFolder + "LVComplete.vtk";
 
+    vtkSmartPointer<vtkPolyDataReader>      m_PolyDataReader = vtkSmartPointer<vtkPolyDataReader>::New();
+    m_PolyDataReader->SetFileName( Sample.c_str() );
+    m_PolyDataReader->Update();
+
+    m_SamplePolydataSP = vtkPolyDataSP::New();
+    m_SamplePolydataSP->DeepCopy( m_PolyDataReader->GetOutput() );
+
+    m_SamplePolyDataMapperSP = vtkPolyDataMapperSP::New();
+    m_SamplePolyDataMapperSP->SetInput( m_SamplePolydataSP );
+
+    //m_SampleGPUPolyDataMapperSP = vtkSmartPointer<vtkGPUPolyDataMapper>::New();
+    //m_SampleGPUPolyDataMapperSP->SetInput( m_SamplePolydataSP );
+    m_pSampleGPUPolyDataMapper = vtkGPUPolyDataMapper::New();
+    m_pSampleGPUPolyDataMapper->SetInput( m_SamplePolydataSP );
+
+    m_SampleActorSP = vtkActorSP::New();
+    //m_SampleActorSP->SetMapper( m_SamplePolyDataMapperSP );
+    //m_SampleActorSP->SetMapper( m_SampleGPUPolyDataMapperSP );
+    m_SampleActorSP->SetMapper( m_pSampleGPUPolyDataMapper );
+
+    m_pRendererSP->AddActor( m_SampleActorSP );
 }
 

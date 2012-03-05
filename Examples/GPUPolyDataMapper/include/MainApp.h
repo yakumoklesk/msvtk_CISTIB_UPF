@@ -27,6 +27,7 @@
 #include "vtkExtTypes.h"
 
 class msvObjectFactory;
+class vtkGPUPolyDataMapper;
 
 // Define a new application type, each program should derive a class from wxApp
 class MainApp: public msvApp
@@ -52,6 +53,12 @@ protected:
     vtkRenderWindowInteractorSP             m_RenderWindowInteractorSP;
 
     msvObjectFactory*                       m_pmsvObjectFactory;
+
+    vtkActorSP                              m_SampleActorSP;
+    vtkPolyDataSP                           m_SamplePolydataSP;
+    vtkPolyDataMapperSP                     m_SamplePolyDataMapperSP;
+    vtkSmartPointer<vtkGPUPolyDataMapper>   m_SampleGPUPolyDataMapperSP;
+    vtkGPUPolyDataMapper*                   m_pSampleGPUPolyDataMapper;
 
 private:
 };

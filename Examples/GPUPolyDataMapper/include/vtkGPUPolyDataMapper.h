@@ -19,102 +19,120 @@
 
 ==============================================================================*/
 
+// .NAME vtkGPUPolyDataMapper - map vtkPolyData to graphics primitives
+// .SECTION Description
+// vtkGPUPolyDataMapper is a class that maps polygonal data (i.e., vtkPolyData)
+// to graphics primitives. vtkGPUPolyDataMapper serves as a superclass for
+// device-specific poly data mappers, that actually do the mapping to the
+// rendering/graphics hardware/software.
 
-#ifndef __VTKMULTIPLEDATAREADER_H__
-#define __VTKMULTIPLEDATAREADER_H__
+#ifndef __VTKGPUPOLYDATAMAPPER_H__
+#define __VTKGPUPOLYDATAMAPPER_H__
 
-#include "vtkTemporalDataSetAlgorithm.h"
+#include "vtkMapper.h"
+#include "vtkTexture.h" // used to include texture unit enum.
 
-#include <vector>
+class vtkPolyData;
+class vtkRenderer;
+class vtkRenderWindow;
 
-class vtkStdString;
-class vtkStringArray;
-class vtkDataReader;
-
-class vtkMultipleDataReader : public vtkTemporalDataSetAlgorithm
+//class VTK_RENDERING_EXPORT vtkGPUPolyDataMapper : public vtkMapper
+class vtkGPUPolyDataMapper : public vtkMapper
 {
 public:
-    static vtkMultipleDataReader *New();
-    vtkTypeMacro( vtkMultipleDataReader, vtkTemporalDataSetAlgorithm );
-    void PrintSelf( ostream& os, vtkIndent indent );
+    static vtkGPUPolyDataMapper *New();
+    vtkTypeMacro(vtkGPUPolyDataMapper,vtkMapper);
+    void PrintSelf(ostream& os, vtkIndent indent);
 
     // Description:
-    // Specify the directory of the file set to read.
-    vtkSetStringMacro(DirectoryName);
-    vtkGetStringMacro(DirectoryName);
+    // Implemented by sub classes. Actual rendering is done here.
+    virtual void RenderPiece(vtkRenderer *ren, vtkActor *act) = 0;
 
     // Description:
-    // Specify the wildcard of the files set to read.
-    vtkSetStringMacro(WildCard);
-    vtkGetStringMacro(WildCard);
+    // This calls RenderPiece (in a for loop is streaming is necessary).
+    virtual void Render(vtkRenderer *ren, vtkActor *act);
 
     // Description:
-    // Specify the timesteps to be catched.
-    vtkSetMacro(CachedTimeSteps, int);
-    vtkGetMacro(CachedTimeSteps, int);
+    // Specify the input data to map.
+    void SetInput(vtkPolyData *in);
+    vtkPolyData *GetInput();
 
     // Description:
-    // Specify to wrap the time steps requested. I a time step requested
-    // is greater than the available, wraps to the start
-    vtkSetMacro(TimeStepWrap, int);
-    vtkGetMacro(TimeStepWrap, int);
-    vtkBooleanMacro(TimeStepWrap, int);
+    // Update that sets the update piece first.
+    void Update();
 
     // Description:
-    // Set/Get the time steps the user wants to load
-    void SetRequestedTimesTeps( double* timeSteps, int numTimeSteps );
-    double* GetRequestedTimesTeps();
+    // If you want only a part of the data, specify by setting the piece.
+    vtkSetMacro(Piece, int);
+    vtkGetMacro(Piece, int);
+    vtkSetMacro(NumberOfPieces, int);
+    vtkGetMacro(NumberOfPieces, int);
+    vtkSetMacro(NumberOfSubPieces, int);
+    vtkGetMacro(NumberOfSubPieces, int);
 
     // Description:
-    // Read the meta information from the list of files in the directory
-    virtual int ReadMetaData( vtkInformation* );
+    // Set the number of ghost cells to return.
+    vtkSetMacro(GhostLevel, int);
+    vtkGetMacro(GhostLevel, int);
 
-    int GetDataObjectType( const vtkStdString& fileName );
-    int GetSeriesDataObjectType( vtkStringArray* series );
+    // Description:
+    // Return bounding box (array of six doubles) of data expressed as
+    // (xmin,xmax, ymin,ymax, zmin,zmax).
+    virtual double *GetBounds();
+    virtual void GetBounds(double bounds[6]) 
+    {this->Superclass::GetBounds(bounds);};
 
-    void SetFileNames( vtkStringArray* fileNames );
-    vtkStringArray* GetFileNames();
+    // Description:
+    // Make a shallow copy of this mapper.
+    void ShallowCopy(vtkAbstractMapper *m);
 
-    // Will return the available number of time steps that can be read,
-    // not the actually stored in the vtkTemporalDataSet
-    int GetAvailableTimeSteps();
+    // Description:
+    // Select a data array from the point/cell data
+    // and map it to a generic vertex attribute. 
+    // vertexAttributeName is the name of the vertex attribute.
+    // dataArrayName is the name of the data array.
+    // fieldAssociation indicates when the data array is a point data array or
+    // cell data array (vtkDataObject::FIELD_ASSOCIATION_POINTS or
+    // (vtkDataObject::FIELD_ASSOCIATION_CELLS).
+    // componentno indicates which component from the data array must be passed as
+    // the attribute. If -1, then all components are passed.
+    virtual void MapDataArrayToVertexAttribute(
+        const char* vertexAttributeName,
+        const char* dataArrayName, int fieldAssociation, int componentno=-1);
 
-protected:
-    vtkMultipleDataReader();
-    virtual ~vtkMultipleDataReader();
+    virtual void MapDataArrayToMultiTextureAttribute(
+        int unit,
+        const char* dataArrayName, int fieldAssociation, int componentno=-1);
 
-    virtual int ProcessRequest( vtkInformation*, vtkInformationVector**,
-                                vtkInformationVector* );
-    virtual int RequestData( vtkInformation*, vtkInformationVector**,
-                             vtkInformationVector* );
+    // Description:
+    // Remove a vertex attribute mapping.
+    virtual void RemoveVertexAttributeMapping(const char* vertexAttributeName);
 
-    virtual int RequestUpdateExtent(vtkInformation*, vtkInformationVector**,
-                                    vtkInformationVector* );
+    // Description:
+    // Remove all vertex attributes.
+    virtual void RemoveAllVertexAttributeMappings();
 
-    virtual int RequestInformation( vtkInformation*, vtkInformationVector**,
-                                    vtkInformationVector* );
+protected:  
+    vtkGPUPolyDataMapper();
+    ~vtkGPUPolyDataMapper() {};
 
-    // Get a concrete instance of the reader
-    virtual vtkDataReader* GetConcreteReaderInstance();
+    // Description:
+    // Called in GetBounds(). When this method is called, the consider the input
+    // to be updated depending on whether this->Static is set or not. This method
+    // simply obtains the bounds from the data-object and returns it.
+    virtual void ComputeBounds();
 
-    // Sets in the output data of type vtkTemporalDataSet the time step data read from single file
-    virtual void SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep );
+    int Piece;
+    int NumberOfPieces;
+    int NumberOfSubPieces;
+    int GhostLevel;
+
+    virtual int FillInputPortInformation(int, vtkInformation*);
 
 private:
-    vtkMultipleDataReader( const vtkMultipleDataReader& );  // Not implemented.
-    void operator=( const vtkMultipleDataReader& );  // Not implemented.
-
-protected:
-    char* DirectoryName;
-    char* WildCard;
-    vtkStringArray* FileNames;
-    int CachedTimeSteps;    // 0 means all
-    int TimeStepWrap;
-    double* RequestedTimeSteps;
-    int NumRequestedTimeSteps;
-    int DataObjectType;
-    int NumAvailableTimeSteps;
-
+    vtkGPUPolyDataMapper(const vtkGPUPolyDataMapper&);  // Not implemented.
+    void operator=(const vtkGPUPolyDataMapper&);  // Not implemented.
 };
 
-#endif	// #ifndef __VTKMULTIPLEDATAREADER_H__
+#endif  // __VTKGPUPOLYDATAMAPPER_H__
+

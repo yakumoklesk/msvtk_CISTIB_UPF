@@ -21,473 +21,218 @@
 
 #include "vtkGPUPolyDataMapper.h"
 
-#include <vtkObjectFactory.h>
-#include <vtkSmartPointer.h>
-#include <vtkErrorCode.h>
-#include <vtkDataReader.h>
-#include <vtkStdString.h>
-#include <vtkStringArray.h>
-#include <vtkInformation.h>
-#include <vtkInformationVector.h>
-#include <vtkStreamingDemandDrivenPipeline.h>
-#include <vtkGlobFileNames.h>
-#include <vtkDataObjectTypes.h>
-#include <vtkTemporalDataSet.h>
+#include "vtkExecutive.h"
+#include "vtkGraphicsFactory.h"
+#include "vtkInformation.h"
+#include "vtkMath.h"
+#include "vtkPolyData.h"
+#include "vtkRenderWindow.h"
 
-using namespace std;
 
-vtkStandardNewMacro( vtkMultipleDataReader );
+//----------------------------------------------------------------------------
+// Needed when we don't use the vtkStandardNewMacro.
+vtkInstantiatorNewMacro(vtkGPUPolyDataMapper);
 
-vtkMultipleDataReader::vtkMultipleDataReader()
-: DirectoryName( 0 )
-, WildCard( 0 )
-, FileNames( 0 )
-, CachedTimeSteps( 0 )
-, RequestedTimeSteps( 0 )
-, NumRequestedTimeSteps( 0 )
-, DataObjectType( VTK_DATA_OBJECT )
-, NumAvailableTimeSteps( 0 )
+//----------------------------------------------------------------------------
+// return the correct type of PolyDataMapper
+vtkGPUPolyDataMapper *vtkGPUPolyDataMapper::New()
 {
-    this->SetNumberOfInputPorts( 0 );
-}
-
-vtkMultipleDataReader::~vtkMultipleDataReader()
-{
-    if( this->DirectoryName )
-    {
-        delete[] DirectoryName; 
-    }
-    if( this->WildCard )
-    {
-        delete[] WildCard; 
-    }
-    if( this->FileNames )
-    {
-        this->FileNames->Delete();
-    }
-    if( this->RequestedTimeSteps )
-    {
-        delete this->RequestedTimeSteps;
-    }
-}
-
-void vtkMultipleDataReader::SetRequestedTimesTeps( double* timeSteps, int numTimeSteps )
-{
-    // TODO?: Compare first?
-    if( this->RequestedTimeSteps )
-    {
-        delete this->RequestedTimeSteps;
-    }
-    this->NumRequestedTimeSteps = numTimeSteps;
-    this->RequestedTimeSteps = new double[this->NumRequestedTimeSteps];
-    for( int indexTimeStep = 0; indexTimeStep < this->NumRequestedTimeSteps; indexTimeStep++ )
-    {
-        this->RequestedTimeSteps[indexTimeStep] = timeSteps[indexTimeStep];
-    }
-    this->Modified();
-}
-
-double* vtkMultipleDataReader::GetRequestedTimesTeps()
-{
-    if( this->RequestedTimeSteps )
-    {
-        double* result = new double[this->NumRequestedTimeSteps];
-        for( int indexTimeStep = 0; indexTimeStep < this->NumRequestedTimeSteps; indexTimeStep++ )
-        {
-            result[indexTimeStep] = this->RequestedTimeSteps[indexTimeStep];
-        }
-        return result;
-    }
-    return 0;
-}
-
-int vtkMultipleDataReader::ProcessRequest( vtkInformation* request,
-                                  vtkInformationVector** inputVector,
-                                  vtkInformationVector* outputVector )
-{
-    // generate the data
-    if(request->Has(vtkDemandDrivenPipeline::REQUEST_DATA()))
-    {
-        return this->RequestData(request, inputVector, outputVector);
-    }
-
-    if(request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
-    {
-        return this->RequestUpdateExtent(request, inputVector, outputVector);
-    }
-
-    // execute information
-    if(request->Has(vtkDemandDrivenPipeline::REQUEST_INFORMATION()))
-    {
-        return this->RequestInformation(request, inputVector, outputVector);
-    }
-
-    return this->Superclass::ProcessRequest(request, inputVector, outputVector);
+    // First try to create the object from the vtkObjectFactory
+    vtkObject* ret = vtkGraphicsFactory::CreateInstance("vtkGPUPolyDataMapper");
+    //vtkObject* ret = vtkGraphicsFactory::CreateInstance("vtkPolyDataMapper");
+    return static_cast<vtkGPUPolyDataMapper *>(ret);
 }
 
 //----------------------------------------------------------------------------
-// Default method performs Update to get information
-int vtkMultipleDataReader::RequestInformation(
-    vtkInformation *,
-    vtkInformationVector **,
-    vtkInformationVector *outputVector)
+vtkGPUPolyDataMapper::vtkGPUPolyDataMapper()
 {
-    vtkInformation *outInfo = outputVector->GetInformationObject(0);
-
-    // We don't want that pipeline set the UPDATE_TIME_STEPS to { 0.0 }, so we init
-    // the extents ourselves, set our UPDATE_TIME_STEPS to lengh 0 and mark 
-    // UPDATE_EXTEND_INITIALIZED
-    vtkStreamingDemandDrivenPipeline *sddp = 
-        vtkStreamingDemandDrivenPipeline::SafeDownCast( this->GetExecutive() );
-    if( sddp )
-    {
-        vtkDebugMacro(<<"Setting UPDATE_TIME_STEPS length to 0...");
-
-        sddp->SetUpdateExtentToWholeExtent( outInfo );
-        double dummy[] = { 0 };
-        outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS(), dummy, 0 );
-        outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT_INITIALIZED(), 1 );
-    }
-
-    return this->ReadMetaData(outInfo);
+    this->Piece = 0;
+    this->NumberOfPieces = 1;
+    this->NumberOfSubPieces = 1;
+    this->GhostLevel = 0;
 }
 
 //----------------------------------------------------------------------------
-int vtkMultipleDataReader::ReadMetaData( vtkInformation *outInfo )
+void vtkGPUPolyDataMapper::Render(vtkRenderer *ren, vtkActor *act)
 {
-    this->SetErrorCode( vtkErrorCode::NoError );
-
-    vtkDebugMacro(<<"Retrieving number of timesteps available...");
-
-    int numDataTimeSteps( 0 );
-    if( !this->FileNames )
+    if (this->Static)
     {
-        this->FileNames = this->GetFileNames();
-        if( !this->FileNames )
-        {
-             numDataTimeSteps = this->FileNames->GetNumberOfTuples();
-             if( numDataTimeSteps <= 0 )
-             {
-                vtkErrorMacro(<< "No filenames were found in " << this->DirectoryName << " with pattern " << this->WildCard);
-                return 0;
-             }
-        }
+        this->RenderPiece(ren,act);
+        return;
+    }
+
+    int currentPiece, nPieces;
+    vtkDataObject *input = this->GetInputDataObject(0, 0);
+
+    if (input == NULL)
+    {
+        vtkErrorMacro("Mapper has no input.");
+        return;
+    }
+
+    nPieces = this->NumberOfPieces * this->NumberOfSubPieces;
+
+    for(int i=0; i<this->NumberOfSubPieces; i++)
+    {
+        // If more than one pieces, render in loop.
+        currentPiece = this->NumberOfSubPieces * this->Piece + i;
+        input->SetUpdateExtent(currentPiece, nPieces, this->GhostLevel);
+        this->RenderPiece(ren, act);
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkGPUPolyDataMapper::SetInput(vtkPolyData *input)
+{
+    if(input)
+    {
+        this->SetInputConnection(0, input->GetProducerPort());
     }
     else
     {
-        numDataTimeSteps = this->FileNames->GetNumberOfTuples();
+        // Setting a NULL input removes the connection.
+        this->SetInputConnection(0, 0);
     }
-
-    if( this->GetSeriesDataObjectType( this->FileNames ) != this->DataObjectType )
-    {
-        vtkErrorMacro(<< "Input data is not of type " << vtkDataObjectTypes::GetClassNameFromTypeId( this->DataObjectType ) );
-        return 0;
-    }
-
-
-    this->NumAvailableTimeSteps = numDataTimeSteps;
-    double* dataTimeSteps = new double[numDataTimeSteps];
-    for( int timeStep = 0; timeStep < numDataTimeSteps; timeStep++ )
-    {
-        dataTimeSteps[timeStep] = static_cast<double>( timeStep );
-    }
-
-    outInfo->Set( vtkStreamingDemandDrivenPipeline::TIME_STEPS(), dataTimeSteps, numDataTimeSteps );
-
-    // Also put time range If not, vtkStreamingDemandDrivenPipeline::NeedToExecuteBasedOnTime will
-    // return prematurely
-    // At the moment, we don't have a metadata place where this range is stored, but there should be
-    static double timeRange[] = { 0, 1 };
-    outInfo->Set( vtkStreamingDemandDrivenPipeline::TIME_RANGE(), timeRange, 2 );
-
-    delete[] dataTimeSteps;
-
-    return 1;
 }
 
-int vtkMultipleDataReader
-::RequestUpdateExtent( vtkInformation* request,
-                       vtkInformationVector **inputVector,
-                       vtkInformationVector *outputVector )
+//----------------------------------------------------------------------------
+// Specify the input data or filter.
+vtkPolyData *vtkGPUPolyDataMapper::GetInput()
 {
-    // get the info objects
-    vtkInformation* outInfo = outputVector->GetInformationObject(0);
-
-    // First test if we have already requested time steps from another filter
-    if( !outInfo->Has( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) || 
-        ( outInfo->Length( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) <= 0 ) )
-    {
-        // If not, then fill the user requested time steps
-        if( this->NumRequestedTimeSteps > 0 )
-        {
-            outInfo->Set( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS(), this->RequestedTimeSteps, this->NumRequestedTimeSteps );
-        }
-        else
-        {
-            vtkDebugMacro(<<"There are not requested time steps...");
-        }
-    }
-    else
-    {
-        int numUpdatedTimeSteps( outInfo->Length( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) );
-        double* updateTimeSteps( outInfo->Get( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) );
-/*
-        // If wrap is set, then recalc the correct time steps requested
-        if( this->TimeStepWrap )
-        {
-            for( int i = 0; i < numUpdatedTimeSteps; i++ )
-            {
-                double timeStepToLoad = updateTimeSteps[i];
-
-                if( timeStepToLoad >= this->NumAvailableTimeSteps )
-                {
-                    timeStepToLoad -= this->NumAvailableTimeSteps;
-                    updateTimeSteps[i] = timeStepToLoad;
-                }
-            }
-        }
-        else
-        {
-            // Error!?
-            //vtkErrorMacro(<< "RequestData requested non available time steps and TimeStepWrap is not set in class vtkMultipleDataReader" );
-        }
-*/
-    }
-
-    return 1;
+    return vtkPolyData::SafeDownCast(
+        this->GetExecutive()->GetInputData(0, 0));
 }
 
-int vtkMultipleDataReader::RequestData(
-    vtkInformation *,
-    vtkInformationVector **,
-    vtkInformationVector *outputVector)
+// Update the network connected to this mapper.
+void vtkGPUPolyDataMapper::Update()
 {
-    vtkInformation *outInfo = outputVector->GetInformationObject(0);
-    vtkTemporalDataSet *outputData = vtkTemporalDataSet::SafeDownCast(
-        outInfo->Get(vtkDataObject::DATA_OBJECT()));
-    this->SetErrorCode( vtkErrorCode::NoError );
-    int done=0;
-
-    // ImageSource superclass does not do this.
-    //outputData->ReleaseData();
-
-    int numUpdateTimeSteps( 0 );
-    double* updateTimeSteps( 0 );
-    if( outInfo->Has( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() ) )
-    {
-        numUpdateTimeSteps = outInfo->Length( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() );
-        updateTimeSteps = outInfo->Get( vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS() );
-    }
-    else
-    {
-        // No timesteps wanted, then return;
-        vtkDebugMacro(<<"No timesteps wanted, skipping...");
-        return 1;
-    }
-
-    if( numUpdateTimeSteps )
-    {
-        outputData->SetNumberOfTimeSteps( numUpdateTimeSteps );
-
-        vtkDebugMacro(<<"Reading vtk structured time steps...");
-
-        vtkSmartPointer<vtkDataReader> dataReaderSP;
-        dataReaderSP.TakeReference( this->GetConcreteReaderInstance() );
-        int indexTimeStep = 0;
-        int leftTimeSteps = numUpdateTimeSteps;
-        while( leftTimeSteps )
-        {
-            int timeStepToLoad = updateTimeSteps[indexTimeStep];
-            if( this->TimeStepWrap )
-            {
-                if( timeStepToLoad >= this->NumAvailableTimeSteps )
-                {
-                    timeStepToLoad -= this->NumAvailableTimeSteps;
-                }
-            }
-            else
-            {
-                if( timeStepToLoad >= this->NumAvailableTimeSteps )
-                {
-                    // Error!?
-                    vtkErrorMacro(<< "RequestData requested non available time steps and TimeStepWrap is not set in class vtkMultipleDataReader" );
-                }
-            }
-
-            dataReaderSP->SetFileName( this->FileNames->GetValue( timeStepToLoad ) );
-            dataReaderSP->Update();
-
-            // Assign the timesteps indexed from zero
-            this->SetOutputTimeStep( dataReaderSP, outputData, indexTimeStep );
-
-            indexTimeStep++;
-            leftTimeSteps--;
-        }
-
-        outputData->GetInformation()->Set( vtkDataObject::DATA_TIME_STEPS(), 
-            updateTimeSteps, numUpdateTimeSteps );
-    }
-
-    return 1;
-}
-
-vtkDataReader* vtkMultipleDataReader::GetConcreteReaderInstance()
-{
-    vtkErrorMacro(<< "GetConcreteReaderInstance called from base class vtkMultipleDataReader" );
-    return NULL;
-}
-
-void vtkMultipleDataReader::SetOutputTimeStep( vtkDataReader* pDataReader, vtkTemporalDataSet *outputData, int timeStep )
-{
-    vtkErrorMacro(<< "SetOutputTimeStep called from base class vtkMultipleDataReader" );
-}
-
-int vtkMultipleDataReader::GetDataObjectType( const vtkStdString& fileName )
-{
-    int resultType = -1;
-    char line[1024];
-    vtkSmartPointer<vtkDataReader> dataReaderSP = vtkSmartPointer<vtkDataReader>::New();
-    dataReaderSP->SetFileName( fileName.c_str() );
-    if( dataReaderSP->OpenVTKFile() && dataReaderSP->ReadHeader() )
-    {
-        // From vtkDataReader::IsFileValid
-        if( !dataReaderSP->ReadString( line ) )
-        {
-            //vtkErrorWithObjectMacro( dataReaderSP, <<"Data file ends prematurely!" );
-            dataReaderSP->CloseVTKFile();
-            //dataReaderSP->SetErrorCode( vtkErrorCode::PrematureEndOfFileError );
-            return -1;
-        }
-        if( !strncmp( dataReaderSP->LowerCase( line ), "dataset", (unsigned long)7) )
-        {
-            if( !dataReaderSP->ReadString( line ) )
-            {
-                //vtkErrorWithObjectMacro( dataReaderSP, <<"Data file ends prematurely!" );
-                dataReaderSP->CloseVTKFile();
-                //dataReaderSP->SetErrorCode( vtkErrorCode::PrematureEndOfFileError );
-                return -1;
-            } 
-            char* lowerCaseLine = dataReaderSP->LowerCase( line );
-            if( !strncmp( lowerCaseLine, "polydata" , strlen( "polydata" ) ) )
-            {
-                resultType = VTK_POLY_DATA;
-            }
-            else if( !strncmp( lowerCaseLine, "structured_points" , strlen( "structured_points" ) ) )
-            {
-                resultType = VTK_STRUCTURED_POINTS;
-            }
-            else if( !strncmp( lowerCaseLine, "structured_grid" , strlen( "structured_grid" ) ) )
-            {
-                resultType = VTK_STRUCTURED_GRID;
-            }
-            else if( !strncmp( lowerCaseLine, "rectilinear_grid" , strlen( "rectilinear_grid" ) ) )
-            {
-                resultType = VTK_RECTILINEAR_GRID;
-            }
-            else if( !strncmp( lowerCaseLine, "unstructured_grid" , strlen( "unstructured_grid" ) ) )
-            {
-                resultType = VTK_UNSTRUCTURED_GRID;
-            }
-            else
-            {
-                resultType = -1;
-            }
-            dataReaderSP->CloseVTKFile();
-        }
-    }
-
-    return resultType;
-}
-
-int vtkMultipleDataReader::GetSeriesDataObjectType( vtkStringArray* series )
-{
-    int resultType = -1;
-    int auxResultType = -1;
-
-    vtkStdString& firstFileName = series->GetValue( 0 );
-    resultType = GetDataObjectType( firstFileName );
-    if( ( ( resultType >= VTK_POLY_DATA ) && ( resultType <= VTK_UNSTRUCTURED_GRID ) ) )
-    {
-        auxResultType = resultType;
-        vtkIdType indexFile = 1;
-        while( indexFile < series->GetNumberOfValues() && ( auxResultType == resultType ) )
-        {
-            vtkStdString& currentFileName = series->GetValue( indexFile );
-            auxResultType = GetDataObjectType( currentFileName );
-            indexFile++;
-        }
-    }
-
-    return ( auxResultType == resultType )?resultType:-1;
-}
-
-void vtkMultipleDataReader::SetFileNames( vtkStringArray* fileNames )
-{
-    // Notimg passed? Return;
-    if( !fileNames )
+    if (this->Static)
     {
         return;
     }
-    // Have something?
-    if( this->FileNames )
+
+    int currentPiece, nPieces = this->NumberOfPieces;
+    vtkPolyData* input = this->GetInput();
+
+    // If the estimated pipeline memory usage is larger than
+    // the memory limit, break the current piece into sub-pieces.
+    if (input)
     {
-        // Same object? Return;
-        if( this->FileNames == fileNames )
+        currentPiece = this->NumberOfSubPieces * this->Piece;
+        input->SetUpdateExtent(currentPiece, this->NumberOfSubPieces*nPieces,
+            this->GhostLevel);
+    }
+
+    this->vtkMapper::Update();
+}
+
+// Get the bounds for the input of this mapper as
+// (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
+double *vtkGPUPolyDataMapper::GetBounds()
+{
+    // do we have an input
+    if ( ! this->GetNumberOfInputConnections(0))
+    {
+        vtkMath::UninitializeBounds(this->Bounds);
+        return this->Bounds;
+    }
+    else
+    {
+        if (!this->Static)
         {
-            return;
+            // For proper clipping, this would be this->Piece, this->NumberOfPieces .
+            // But that removes all benefites of streaming.
+            // Update everything as a hack for paraview streaming.
+            // This should not affect anything else, because no one uses this.
+            // It should also render just the same.
+            // Just remove this lie if we no longer need streaming in paraview :)
+            //this->GetInput()->SetUpdateExtent(0, 1, 0);
+            //this->GetInput()->Update();
+
+            this->Update();
         }
-        // TODO: Test every entry? Maybe more expensive than Delete + DeepCopy
-        this->FileNames->Delete();
+        this->ComputeBounds();
+
+        // if the bounds indicate NAN and subpieces are being used then
+        // return NULL
+        if (!vtkMath::AreBoundsInitialized(this->Bounds)
+            && this->NumberOfSubPieces > 1)
+        {
+            return NULL;
+        }
+        return this->Bounds;
     }
-    this->FileNames = vtkStringArray::New();
-    this->FileNames->DeepCopy( fileNames );
 }
 
-vtkStringArray* vtkMultipleDataReader::GetFileNames()
+void vtkGPUPolyDataMapper::ComputeBounds()
 {
-    //if( this->FileNames )
-    //{
-    //    return this->FileNames;
-    //}
+    this->GetInput()->GetBounds(this->Bounds);
+}
 
-    vtkSmartPointer<vtkGlobFileNames> globFileNamesSP = vtkSmartPointer<vtkGlobFileNames>::New();
-    globFileNamesSP->SetDirectory( this->DirectoryName );
-    globFileNamesSP->RecurseOff();
-    if( globFileNamesSP->AddFileNames( this->WildCard ) )
+void vtkGPUPolyDataMapper::ShallowCopy(vtkAbstractMapper *mapper)
+{
+    vtkGPUPolyDataMapper *m = vtkGPUPolyDataMapper::SafeDownCast(mapper);
+    if ( m != NULL )
     {
-        int a = globFileNamesSP->GetNumberOfFileNames();
-        vtkStringArray* foundFiles = vtkStringArray::New();
-        //foundFiles->Register( this );
-        foundFiles->DeepCopy( globFileNamesSP->GetFileNames() );
-
-        return foundFiles;
+        this->SetInput(m->GetInput());
+        this->SetGhostLevel(m->GetGhostLevel());
+        this->SetNumberOfPieces(m->GetNumberOfPieces());
+        this->SetNumberOfSubPieces(m->GetNumberOfSubPieces());
     }
 
-    return 0;
+    // Now do superclass
+    this->vtkMapper::ShallowCopy(mapper);
 }
 
-int vtkMultipleDataReader::GetAvailableTimeSteps()
+void vtkGPUPolyDataMapper::MapDataArrayToVertexAttribute(
+    const char* vtkNotUsed(vertexAttributeName),
+    const char* vtkNotUsed(dataArrayName),
+    int vtkNotUsed(fieldAssociation),
+    int vtkNotUsed(componentno)
+    )
 {
-    // Update the information. If we are already up to date, it will not execute
-    this->UpdateInformation();
+    vtkErrorMacro("Not impmlemented at this level...");
+}
 
-    return this->NumAvailableTimeSteps;
+void vtkGPUPolyDataMapper::MapDataArrayToMultiTextureAttribute(
+    int vtkNotUsed(unit),
+    const char* vtkNotUsed(dataArrayName),
+    int vtkNotUsed(fieldAssociation),
+    int vtkNotUsed(componentno)
+    )
+{
+    vtkErrorMacro("Not impmlemented at this level...");
 }
 
 
-void vtkMultipleDataReader::PrintSelf( ostream& os, vtkIndent indent )
+void vtkGPUPolyDataMapper::RemoveVertexAttributeMapping(const char* vtkNotUsed(vertexAttributeName))
 {
-    this->Superclass::PrintSelf( os, indent );
+    vtkErrorMacro("Not impmlemented at this level...");
+}
 
-    os << indent << "DirectoryName: " << this->DirectoryName << "\n";
-    os << indent << "WildCard: " << this->WildCard << "\n";
 
-    //vtkStringArray* FileNames;
-    //int CachedTimeSteps;	// 0 means all
-    //double* m_RequestedTimeSteps;
-    
-    os << indent << "RequestedTimeSteps: " << this->RequestedTimeSteps << "\n";
-    os << indent << "DataObjectType: " << this->DataObjectType << "\n";
-    os << indent << "NumAvailableTimeSteps: " << this->NumAvailableTimeSteps << "\n";
+void vtkGPUPolyDataMapper::RemoveAllVertexAttributeMappings()
+{
+    vtkErrorMacro("Not impmlemented at this level...");
+}
+
+
+void vtkGPUPolyDataMapper::PrintSelf(ostream& os, vtkIndent indent)
+{
+    this->Superclass::PrintSelf(os,indent);
+
+    os << indent << "Piece : " << this->Piece << endl;
+    os << indent << "NumberOfPieces : " << this->NumberOfPieces << endl;
+    os << indent << "GhostLevel: " << this->GhostLevel << endl;
+    os << indent << "Number of sub pieces: " << this->NumberOfSubPieces
+        << endl;
+}
+
+//----------------------------------------------------------------------------
+int vtkGPUPolyDataMapper::FillInputPortInformation(
+    int vtkNotUsed( port ), vtkInformation* info)
+{
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
+    return 1;
 }
 

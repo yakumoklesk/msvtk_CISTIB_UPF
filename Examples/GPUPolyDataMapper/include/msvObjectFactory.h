@@ -43,7 +43,7 @@ protected:
     msvObjectFactory();
     virtual ~msvObjectFactory();
 
-    virtual vtkObject* CreateObject( const char* className );
+    virtual vtkObject* CreateObject( const char* vtkclassname );
 
 };
 

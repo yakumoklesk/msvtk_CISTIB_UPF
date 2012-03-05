@@ -98,6 +98,10 @@ set( SRCS_${PROJECT_NAME}
   src/msvObjectFactory.cxx
   include/vtkGPUPolyDataMapper.h
   src/vtkGPUPolyDataMapper.cxx
+  include/vtkGPUPainterPolyDataMapper.h
+  src/vtkGPUPainterPolyDataMapper.cxx
+  include/vtkGPUDefaultPainter.h
+  src/vtkGPUDefaultPainter.cxx
   )
 
 LOG_DEBUG( "COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE ${COMMON_APPLICATION_EXECUTABLE_TYPE_CMAKE}" )
